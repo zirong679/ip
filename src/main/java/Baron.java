@@ -2,6 +2,10 @@ import java.util.Scanner;
 
 public class Baron {
     static void main(String[] args) {
+        Scanner input = new Scanner(System.in);
+        String[] memory = new String[100];
+        int count = 0;
+
         String banner = """
                 ########      ######    ########      ######    ##      ## \s
                 ########      ######    ########      ######    ##      ## \s
@@ -24,19 +28,32 @@ public class Baron {
         System.out.println(intro);
         System.out.println(line);
 
-        // Echo input
-        Scanner input = new Scanner(System.in);
-        String s = input.nextLine();
-        while (!s.equals("bye")) {
+        // Stores input
+        while (true) {
+            String s = input.nextLine();
             System.out.println(line);
-            System.out.println(s);
+            switch (s) {
+                case "bye":
+                    System.out.println(outro);
+                    break;
+                case "list":
+                    printList(memory, count);
+                    break;
+                default:
+                    System.out.println("added: " + s);
+                    memory[count++] = s;
+                    break;
+            }
             System.out.println(line);
-            s = input.nextLine();
+            if (s.equals("bye")) {
+                return;
+            }
         }
+    }
 
-        // Prints outro
-        System.out.println(line);
-        System.out.println(outro);
-        System.out.println(line);
+    static void printList(String[] memory, int count) {
+        for (int i = 0; i < count; i++) {
+            System.out.println((i + 1) + ". " + memory[i]);
+        }
     }
 }
