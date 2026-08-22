@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 import Task.Deadline;
 import Task.Event;
@@ -5,9 +7,7 @@ import Task.Task;
 import Task.ToDo;
 
 public class Baron {
-    static int numTasks = 0;
-    static Task[] tasks = new Task[100];
-
+    static final int INDENT_SIZE = 4;
     static String banner = """
                 ########      ######    ########      ######    ##      ## \s
                 ########      ######    ########      ######    ##      ## \s
@@ -17,14 +17,13 @@ public class Baron {
                 ########    ##########  ########    ##      ##  ##  ##  ## \s
                 ##      ##  ##      ##  ##    ##    ##      ##  ##    #### \s
                 ##      ##  ##      ##  ##    ##    ##      ##  ##    #### \s
-                ########    ##      ##  ##      ##    ######    ##      ## \s
+                ########    ##      ##  ##     ##     ######    ##      ## \s
                 ########    ##      ##  ##      ##    ######    ##      ## \s
                 """;
     static String intro = "Hello! I'm Baron\nI am a useful chatbot!";
     static String outro = "Bye. Hope you have a wonderful day!";
     static String line = "____________________________________________________________";
-
-    static final int INDENT_SIZE = 4;
+    static List<Task> tasks = new ArrayList<Task>();
 
     static void main(String[] args) {
         // Prints intro
@@ -45,7 +44,7 @@ public class Baron {
                     System.out.print(outro.indent(INDENT_SIZE + 1));
                 } else if (command.equals("list")) {
                     handleList();
-                } else if (command.startsWith("mark ") || command.equals("mark")){
+                } else if (command.startsWith("mark ") || command.equals("mark")) {
                     handleMark(command);
                 } else if (command.startsWith("unmark ") || command.equals("unmark")) {
                     handleUnmark(command);
@@ -53,8 +52,10 @@ public class Baron {
                     handleToDo(command);
                 } else if (command.startsWith("deadline ") || command.equals("deadline")) {
                     handleDeadline(command);
-                } else if (command.startsWith("event ") || command.startsWith("event")) {
+                } else if (command.startsWith("event ") || command.equals("event")) {
                     handleEvent(command);
+                } else if (command.startsWith("delete ") || command.equals("delete")) {
+                    handleDelete(command);
                 } else {
                     throw new BaronException("Error: Unknown command");
                 }
@@ -71,12 +72,12 @@ public class Baron {
     }
 
     static void handleList() {
-        if (numTasks == 0) {
-            System.out.print("There are no tasks in your list.".indent(INDENT_SIZE + 1));
+        if (tasks.isEmpty()) {
+            System.out.print("There are no tasks in your list".indent(INDENT_SIZE + 1));
         } else {
             System.out.print("Here are the tasks in your list:".indent(INDENT_SIZE + 1));
-            for (int i = 0; i < numTasks; i++) {
-                System.out.print(((i + 1) + "." + tasks[i]).indent(INDENT_SIZE + 1));
+            for (int i = 0; i < tasks.size(); i++) {
+                System.out.print(((i + 1) + "." + tasks.get(i)).indent(INDENT_SIZE + 1));
             }
         }
     }
@@ -91,7 +92,7 @@ public class Baron {
         } catch (NumberFormatException e) {
             throw new BaronException("Error: Task number must be an integer");
         }
-        if (taskNumber < 1 || taskNumber > numTasks) {
+        if (taskNumber < 1 || taskNumber > tasks.size()) {
             throw new BaronException("Error: Invalid task number");
         }
         return taskNumber;
@@ -100,34 +101,28 @@ public class Baron {
     static void handleMark(String command) throws BaronException {
         String argument = command.substring(4).trim();
         int taskNumber = parseTaskNumber(argument);
-        if (taskNumber == -1) {
-            return;
-        }
 
         // Mark task as done
-        tasks[taskNumber - 1].markAsDone();
+        tasks.get(taskNumber - 1).markAsDone();
         System.out.print("Nice! I've marked this task as done:".indent(INDENT_SIZE + 1));
-        System.out.print(tasks[taskNumber - 1].toString().indent(INDENT_SIZE + 3));
+        System.out.print(tasks.get(taskNumber - 1).toString().indent(INDENT_SIZE + 3));
     }
 
     static void handleUnmark(String command) throws BaronException {
         String argument = command.substring(6).trim();
         int taskNumber = parseTaskNumber(argument);
-        if (taskNumber == -1) {
-            return;
-        }
 
         // Mark task as not done
-        tasks[taskNumber - 1].markAsNotDone();
+        tasks.get(taskNumber - 1).markAsNotDone();
         System.out.print("OK, I've marked this task as not done yet:".indent(INDENT_SIZE + 1));
-        System.out.print(tasks[taskNumber - 1].toString().indent(INDENT_SIZE + 3));
+        System.out.print(tasks.get(taskNumber - 1).toString().indent(INDENT_SIZE + 3));
     }
 
     static void addTask(Task task) {
-        tasks[numTasks++] = task;
+        tasks.add(task);
         System.out.print("Got it. I've added this task:".indent(INDENT_SIZE + 1));
         System.out.print(task.toString().indent(INDENT_SIZE + 3));
-        System.out.print(("Now you have " + numTasks + " tasks in the list").indent(INDENT_SIZE + 1));
+        System.out.print(("Now you have " + tasks.size() + " tasks in the list").indent(INDENT_SIZE + 1));
     }
 
     static void handleToDo(String command) throws BaronException {
@@ -196,5 +191,16 @@ public class Baron {
 
         // Add event task
         Baron.addTask(new Event(description, fromDate, toDate));
+    }
+
+    static void handleDelete(String command) throws BaronException {
+        String argument = command.substring(6).trim();
+        int taskNumber = parseTaskNumber(argument);
+
+        // Delete task from tasks
+        Task removed = tasks.remove(taskNumber - 1);
+        System.out.print("Noted. I've removed this task:".indent(INDENT_SIZE + 1));
+        System.out.print(removed.toString().indent(INDENT_SIZE + 3));
+        System.out.print(("Now you have " + tasks.size() + " tasks in the list").indent(INDENT_SIZE + 1));
     }
 }
