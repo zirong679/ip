@@ -1,4 +1,8 @@
 import java.util.Scanner;
+import Task.Deadline;
+import Task.Event;
+import Task.Task;
+import Task.ToDo;
 
 public class Baron {
     static int numTasks = 0;
@@ -36,22 +40,26 @@ public class Baron {
 
             // Prints output
             System.out.print(line.indent(INDENT_SIZE));
-            if (command.equals("bye")) {
-                System.out.print(outro.indent(INDENT_SIZE + 1));
-            } else if (command.equals("list")) {
-                handleList();
-            } else if (command.startsWith("mark ")){
-                handleMark(command);
-            } else if (command.startsWith("unmark ")) {
-                handleUnmark(command);
-            } else if (command.startsWith("todo ")) {
-                handleToDo(command);
-            } else if (command.startsWith("deadline ")) {
-                handleDeadline(command);
-            } else if (command.startsWith("event ")) {
-                handleEvent(command);
-            } else {
-                System.out.print("Error: Unknown command".indent(INDENT_SIZE + 1));
+            try {
+                if (command.equals("bye")) {
+                    System.out.print(outro.indent(INDENT_SIZE + 1));
+                } else if (command.equals("list")) {
+                    handleList();
+                } else if (command.startsWith("mark ") || command.equals("mark")){
+                    handleMark(command);
+                } else if (command.startsWith("unmark ") || command.equals("unmark")) {
+                    handleUnmark(command);
+                } else if (command.startsWith("todo ") || command.equals("todo")) {
+                    handleToDo(command);
+                } else if (command.startsWith("deadline ") || command.equals("deadline")) {
+                    handleDeadline(command);
+                } else if (command.startsWith("event ") || command.startsWith("event")) {
+                    handleEvent(command);
+                } else {
+                    throw new BaronException("Error: Unknown command");
+                }
+            } catch (BaronException e) {
+                System.out.print(e.getMessage().indent(INDENT_SIZE + 1));
             }
             System.out.print(line.indent(INDENT_SIZE));
 
@@ -73,26 +81,23 @@ public class Baron {
         }
     }
 
-    static int parseTaskNumber(String argument) {
+    static int parseTaskNumber(String argument) throws BaronException {
         if (argument.isEmpty()) {
-            System.out.print("Error: Missing task number".indent(INDENT_SIZE + 1));
-            return -1;
+            throw new BaronException("Error: Missing task number");
         }
         int taskNumber;
         try {
             taskNumber = Integer.parseInt(argument);
         } catch (NumberFormatException e) {
-            System.out.print("Error: Task number must be an integer".indent(INDENT_SIZE + 1));
-            return -1;
+            throw new BaronException("Error: Task number must be an integer");
         }
         if (taskNumber < 1 || taskNumber > numTasks) {
-            System.out.print("Error: Invalid task number".indent(INDENT_SIZE + 1));
-            return -1;
+            throw new BaronException("Error: Invalid task number");
         }
         return taskNumber;
     }
 
-    static void handleMark(String command) {
+    static void handleMark(String command) throws BaronException {
         String argument = command.substring(4).trim();
         int taskNumber = parseTaskNumber(argument);
         if (taskNumber == -1) {
@@ -105,7 +110,7 @@ public class Baron {
         System.out.print(tasks[taskNumber - 1].toString().indent(INDENT_SIZE + 3));
     }
 
-    static void handleUnmark(String command) {
+    static void handleUnmark(String command) throws BaronException {
         String argument = command.substring(6).trim();
         int taskNumber = parseTaskNumber(argument);
         if (taskNumber == -1) {
@@ -125,53 +130,45 @@ public class Baron {
         System.out.print(("Now you have " + numTasks + " tasks in the list").indent(INDENT_SIZE + 1));
     }
 
-    static void handleToDo(String command) {
+    static void handleToDo(String command) throws BaronException {
         // Extract description
         String description = command.substring(4).trim();
         if (description.isEmpty()) {
-            System.out.print("Error: Missing task description".indent(INDENT_SIZE + 1));
-            return;
+            throw new BaronException("Error: Missing task description");
         }
 
         // Add to-do task
         Baron.addTask(new ToDo(description));
     }
 
-    static void handleDeadline(String command) {
+    static void handleDeadline(String command) throws BaronException {
         // Extract /by flag
         if (!command.contains(" /by ")) {
-            System.out.print("Error: Missing deadline /by flag".indent(INDENT_SIZE + 1));
-            return;
+            throw new BaronException("Error: Missing /by flag for deadline");
         }
         int byFlagIndex = command.indexOf(" /by ");
 
         // Extract description and deadline
         String description = command.substring(8, byFlagIndex).trim();
-        String deadline =  command.substring(byFlagIndex + 5).trim();
-        if (description.isEmpty() || deadline.isEmpty()) {
-            if (description.isEmpty()) {
-                System.out.print("Error: Missing deadline description".indent(INDENT_SIZE + 1));
-            }
-            if (deadline.isEmpty()) {
-                System.out.print("Error: Missing deadline date/time".indent(INDENT_SIZE + 1));
-            }
-            return;
+        String deadline = command.substring(byFlagIndex + 4).trim();
+        if (description.isEmpty()) {
+            throw new BaronException("Error: Missing deadline description");
+        }
+        if (deadline.isEmpty()) {
+            throw new BaronException("Error: Missing deadline date/time");
         }
 
         // Add deadline task
         Baron.addTask(new Deadline(description, deadline));
     }
 
-    static void handleEvent(String command) {
+    static void handleEvent(String command) throws BaronException {
         // Extract /from and /to flags
-        if (!command.contains(" /to ") || !command.contains(" /from ")) {
-            if (!command.contains(" /from ")) {
-                System.out.print("Error: Missing event /from flag".indent(INDENT_SIZE + 1));
-            }
-            if (!command.contains(" /to ")) {
-                System.out.print("Error: Missing event /to flag".indent(INDENT_SIZE + 1));
-            }
-            return;
+        if (!command.contains(" /from ")) {
+            throw new BaronException("Error: Missing /from flag for event");
+        }
+        if (!command.contains(" /to ")) {
+            throw new BaronException("Error: Missing /to flag for event");
         }
         int fromFlagIndex = command.indexOf(" /from ");
         int toFlagIndex = command.indexOf(" /to ");
@@ -180,24 +177,21 @@ public class Baron {
         String description, fromDate, toDate;
         if (fromFlagIndex < toFlagIndex) {
             description = command.substring(5, fromFlagIndex).trim();
-            fromDate = command.substring(fromFlagIndex + 7, toFlagIndex).trim();
-            toDate = command.substring(toFlagIndex + 5).trim();
+            fromDate = command.substring(fromFlagIndex + 6, toFlagIndex).trim();
+            toDate = command.substring(toFlagIndex + 4).trim();
         } else {
             description = command.substring(5, toFlagIndex).trim();
-            toDate = command.substring(toFlagIndex + 5, fromFlagIndex).trim();
-            fromDate = command.substring(fromFlagIndex + 7).trim();
+            toDate = command.substring(toFlagIndex + 4, fromFlagIndex).trim();
+            fromDate = command.substring(fromFlagIndex + 6).trim();
         }
-        if (description.isEmpty() || fromDate.isEmpty() || toDate.isEmpty()) {
-            if (description.isEmpty()) {
-                System.out.print("Error: Missing event description".indent(INDENT_SIZE + 1));
-            }
-            if (fromDate.isEmpty()) {
-                System.out.print("Error: Missing event from date/time".indent(INDENT_SIZE + 1));
-            }
-            if (toDate.isEmpty()) {
-                System.out.print("Error: Missing event to date/time".indent(INDENT_SIZE + 1));
-            }
-            return;
+        if (description.isEmpty()) {
+            throw new BaronException("Error: Missing event description");
+        }
+        if (fromDate.isEmpty()) {
+            throw new BaronException("Error: Missing event from date/time");
+        }
+        if (toDate.isEmpty()) {
+            throw new BaronException("Error: Missing event to date/time");
         }
 
         // Add event task
