@@ -1,9 +1,17 @@
-package Task;
+package baron.task;
 
+/**
+ * Represents a task that can be marked as completed.
+ */
 public class Task {
     private String description;
     private boolean isDone;
 
+    /**
+     * Creates a task with the specified description.
+     *
+     * @param description The task description.
+     */
     public Task(String description) {
         this.description = description;
         this.isDone = false;
@@ -13,10 +21,16 @@ public class Task {
         return (isDone ? "X" : " "); // mark done task with X
     }
 
+    /**
+     * Marks this task as completed.
+     */
     public void markAsDone() {
         this.isDone = true;
     }
 
+    /**
+     * Marks this task as not completed.
+     */
     public void markAsNotDone() {
         this.isDone = false;
     }

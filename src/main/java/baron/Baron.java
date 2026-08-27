@@ -1,11 +1,16 @@
+package baron;
+
+import baron.task.Deadline;
+import baron.task.Event;
+import baron.task.Task;
+import baron.task.ToDo;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import Task.Deadline;
-import Task.Event;
-import Task.Task;
-import Task.ToDo;
 
+/**
+ * Provides a command-line chatbot for managing a list of tasks.
+ */
 public class Baron {
     static final int INDENT_SIZE = 4;
     static String banner = """
@@ -23,7 +28,7 @@ public class Baron {
     static String intro = "Hello! I'm Baron\nI am a useful chatbot!";
     static String outro = "Bye. Hope you have a wonderful day!";
     static String line = "____________________________________________________________";
-    static List<Task> tasks = new ArrayList<Task>();
+    static List<Task> tasks = new ArrayList<>();
 
     static void main(String[] args) {
         // Prints intro

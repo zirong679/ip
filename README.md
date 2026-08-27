@@ -1,4 +1,4 @@
-# Baron project template
+# baron.Baron project template
 
 This is a project template for a greenfield Java project. Given below are instructions on how to use it.
 
@@ -23,7 +23,7 @@ Prerequisites: JDK 25, update Intellij to the most recent version.
    ########    ##########  ########    ##      ##  ##  ##  ##
    ##      ##  ##      ##  ##    ##    ##      ##  ##    ####
    ##      ##  ##      ##  ##    ##    ##      ##  ##    ####
-   ########    ##      ##  ##      ##    ######    ##      ##
+   ########    ##      ##  ##     ##     ######    ##      ##
    ########    ##      ##  ##      ##    ######    ##      ##
    ```
 
