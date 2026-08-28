@@ -5,6 +5,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -38,7 +41,7 @@ public class Baron {
 
     static void main(String[] args) {
         tasks = readTasks(); // Read tasks in tasks.txt
-        
+
         // Prints intro
         System.out.print(line.indent(INDENT_SIZE));
         System.out.print(banner.indent(INDENT_SIZE + 1));
@@ -170,7 +173,7 @@ public class Baron {
         }
 
         // Add deadline task
-        Baron.addTask(new Deadline(description, deadline));
+        Baron.addTask(new Deadline(description, parseDateTime(deadline)));
     }
 
     static void handleEvent(String command) throws BaronException {
@@ -204,9 +207,12 @@ public class Baron {
         if (toDate.isEmpty()) {
             throw new BaronException("Error: Missing event to date/time");
         }
+        if (!parseDateTime(fromDate).isBefore(parseDateTime(toDate))) {
+            throw new BaronException("Error: From date must be before to date");
+        }
 
         // Add event task
-        Baron.addTask(new Event(description, fromDate, toDate));
+        Baron.addTask(new Event(description, parseDateTime(fromDate), parseDateTime(toDate)));
     }
 
     static void handleDelete(String command) throws BaronException {
@@ -244,8 +250,15 @@ public class Baron {
             try {
                 Task t = switch (taskFields[0]) {
                     case "T" -> new ToDo(taskFields[2]);
-                    case "D" -> new Deadline(taskFields[2], taskFields[3]);
-                    case "E" -> new Event(taskFields[2], taskFields[3], taskFields[4]);
+                    case "D" -> new Deadline(
+                            taskFields[2],
+                            LocalDateTime.parse(taskFields[3])
+                    );
+                    case "E" -> new Event(
+                            taskFields[2],
+                            LocalDateTime.parse(taskFields[3]),
+                            LocalDateTime.parse(taskFields[4])
+                    );
                     default -> null;
                 };
                 if (t == null) {
@@ -255,7 +268,7 @@ public class Baron {
                     t.markAsDone();
                 }
                 tasks.add(t);
-            } catch (ArrayIndexOutOfBoundsException | BaronException e) {
+            } catch (ArrayIndexOutOfBoundsException | DateTimeParseException | BaronException e) {
                 System.out.println("Invalid task: '" + taskString + "'");
             }
         }
@@ -291,6 +304,15 @@ public class Baron {
             );
         } catch (IOException e) {
             System.err.println(e.getMessage());
+        }
+    }
+
+    static LocalDateTime parseDateTime(String dateTime) throws BaronException {
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/yyyy HH:mm");
+            return LocalDateTime.parse(dateTime, formatter);
+        } catch (DateTimeParseException e) {
+            throw new BaronException("Error: Date/time must be in d/M/yyyy HH:mm");
         }
     }
 }
