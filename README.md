@@ -1,4 +1,4 @@
-# baron.Baron project template
+# Baron project template
 
 This is a project template for a greenfield Java project. Given below are instructions on how to use it.
 

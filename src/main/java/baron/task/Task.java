@@ -39,4 +39,13 @@ public class Task {
     public String toString() {
         return "[" + this.getStatusIcon() + "] " + this.description;
     }
+
+    /**
+     * Returns this task in the file format used for persistent storage.
+     *
+     * @return The persistent representation of this task.
+     */
+    public String toFileString() {
+        return (this.isDone ? "1" : "0") + " | " + this.description;
+    }
 }

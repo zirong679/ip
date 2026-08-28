@@ -17,4 +17,10 @@ public class ToDo extends Task {
     public String toString() {
         return "[T]" + super.toString();
     }
+
+    /** {@inheritDoc} */
+    @Override
+    public String toFileString() {
+        return "T | " + super.toFileString();
+    }
 }
