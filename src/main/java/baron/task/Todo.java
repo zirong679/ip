@@ -3,13 +3,13 @@ package baron.task;
 /**
  * Represents a task without a deadline or event time.
  */
-public class ToDo extends Task {
+public class Todo extends Task {
     /**
      * Creates a to-do task with the specified description.
      *
      * @param description The task description.
      */
-    public ToDo(String description) {
+    public Todo(String description) {
         super(description);
     }
 

@@ -1,318 +1,46 @@
 package baron;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
 
-import baron.task.Deadline;
-import baron.task.Event;
-import baron.task.Task;
-import baron.task.ToDo;
-
 /**
- * Provides a command-line chatbot for managing a list of tasks.
+ * Starts Baron and coordinates its input loop.
  */
 public class Baron {
-    static final int INDENT_SIZE = 4;
-    static String banner = """
-                ########      ######    ########      ######    ##      ## \s
-                ########      ######    ########      ######    ##      ## \s
-                ##      ##  ##      ##  ##      ##  ##      ##  ####    ## \s
-                ##      ##  ##      ##  ##      ##  ##      ##  ####    ## \s
-                ########    ##########  ########    ##      ##  ##  ##  ## \s
-                ########    ##########  ########    ##      ##  ##  ##  ## \s
-                ##      ##  ##      ##  ##    ##    ##      ##  ##    #### \s
-                ##      ##  ##      ##  ##    ##    ##      ##  ##    #### \s
-                ########    ##      ##  ##     ##     ######    ##      ## \s
-                ########    ##      ##  ##      ##    ######    ##      ## \s
-                """;
-    static String intro = "Hello! I'm Baron\nI am a useful chatbot!";
-    static String outro = "Bye. Hope you have a wonderful day!";
-    static String line = "____________________________________________________________";
-    static List<Task> tasks = new ArrayList<>();
+    private final Parser parser;
 
-    static void main(String[] args) {
-        tasks = readTasks(); // Read tasks in tasks.txt
-
-        // Prints intro
-        System.out.print(line.indent(INDENT_SIZE));
-        System.out.print(banner.indent(INDENT_SIZE + 1));
-        System.out.print(intro.indent(INDENT_SIZE + 1));
-        System.out.print(line.indent(INDENT_SIZE));
-
-        Scanner input = new Scanner(System.in);
-        while (true) {
-            // Read input
-            String command = input.nextLine().trim();
-
-            // Prints output
-            System.out.print(line.indent(INDENT_SIZE));
-            try {
-                if (command.equals("bye")) {
-                    System.out.print(outro.indent(INDENT_SIZE + 1));
-                } else if (command.equals("list")) {
-                    handleList();
-                } else if (command.startsWith("mark ") || command.equals("mark")) {
-                    handleMark(command);
-                } else if (command.startsWith("unmark ") || command.equals("unmark")) {
-                    handleUnmark(command);
-                } else if (command.startsWith("todo ") || command.equals("todo")) {
-                    handleToDo(command);
-                } else if (command.startsWith("deadline ") || command.equals("deadline")) {
-                    handleDeadline(command);
-                } else if (command.startsWith("event ") || command.equals("event")) {
-                    handleEvent(command);
-                } else if (command.startsWith("delete ") || command.equals("delete")) {
-                    handleDelete(command);
-                } else {
-                    throw new BaronException("Error: Unknown command");
-                }
-            } catch (BaronException e) {
-                System.out.print(e.getMessage().indent(INDENT_SIZE + 1));
-            }
-            System.out.print(line.indent(INDENT_SIZE));
-
-            // Terminate Baron
-            if (command.equals("bye")) {
-                return;
-            }
-        }
-    }
-
-    static void handleList() {
-        if (tasks.isEmpty()) {
-            System.out.print("There are no tasks in your list".indent(INDENT_SIZE + 1));
-        } else {
-            System.out.print("Here are the tasks in your list:".indent(INDENT_SIZE + 1));
-            for (int i = 0; i < tasks.size(); i++) {
-                System.out.print(((i + 1) + "." + tasks.get(i)).indent(INDENT_SIZE + 1));
-            }
-        }
-    }
-
-    static int parseTaskNumber(String argument) throws BaronException {
-        if (argument.isEmpty()) {
-            throw new BaronException("Error: Missing task number");
-        }
-        int taskNumber;
+    /**
+     * Creates Baron using the given file for persistent task storage.
+     *
+     * @param path The path to the task data file.
+     */
+    private Baron(Path path) {
+        Storage storage = new Storage(path);
+        TaskList tasks = new TaskList();
         try {
-            taskNumber = Integer.parseInt(argument);
-        } catch (NumberFormatException e) {
-            throw new BaronException("Error: Task number must be an integer");
-        }
-        if (taskNumber < 1 || taskNumber > tasks.size()) {
-            throw new BaronException("Error: Invalid task number");
-        }
-        return taskNumber;
-    }
-
-    static void handleMark(String command) throws BaronException {
-        String argument = command.substring(4).trim();
-        int taskNumber = parseTaskNumber(argument);
-
-        // Mark task as done
-        tasks.get(taskNumber - 1).markAsDone();
-        System.out.print("Nice! I've marked this task as done:".indent(INDENT_SIZE + 1));
-        System.out.print(tasks.get(taskNumber - 1).toString().indent(INDENT_SIZE + 3));
-        writeTasks();
-    }
-
-    static void handleUnmark(String command) throws BaronException {
-        String argument = command.substring(6).trim();
-        int taskNumber = parseTaskNumber(argument);
-
-        // Mark task as not done
-        tasks.get(taskNumber - 1).markAsNotDone();
-        System.out.print("OK, I've marked this task as not done yet:".indent(INDENT_SIZE + 1));
-        System.out.print(tasks.get(taskNumber - 1).toString().indent(INDENT_SIZE + 3));
-        writeTasks();
-    }
-
-    static void addTask(Task task) {
-        tasks.add(task);
-        System.out.print("Got it. I've added this task:".indent(INDENT_SIZE + 1));
-        System.out.print(task.toString().indent(INDENT_SIZE + 3));
-        System.out.print(("Now you have " + tasks.size() + " tasks in the list").indent(INDENT_SIZE + 1));
-        appendTask(task);
-    }
-
-    static void handleToDo(String command) throws BaronException {
-        // Extract description
-        String description = command.substring(4).trim();
-        if (description.isEmpty()) {
-            throw new BaronException("Error: Missing task description");
-        }
-
-        // Add to-do task
-        Baron.addTask(new ToDo(description));
-    }
-
-    static void handleDeadline(String command) throws BaronException {
-        // Extract /by flag
-        if (!command.contains(" /by ")) {
-            throw new BaronException("Error: Missing /by flag for deadline");
-        }
-        int byFlagIndex = command.indexOf(" /by ");
-
-        // Extract description and deadline
-        String description = command.substring(8, byFlagIndex).trim();
-        String deadline = command.substring(byFlagIndex + 4).trim();
-        if (description.isEmpty()) {
-            throw new BaronException("Error: Missing deadline description");
-        }
-        if (deadline.isEmpty()) {
-            throw new BaronException("Error: Missing deadline date/time");
-        }
-
-        // Add deadline task
-        Baron.addTask(new Deadline(description, parseDateTime(deadline)));
-    }
-
-    static void handleEvent(String command) throws BaronException {
-        // Extract /from and /to flags
-        if (!command.contains(" /from ")) {
-            throw new BaronException("Error: Missing /from flag for event");
-        }
-        if (!command.contains(" /to ")) {
-            throw new BaronException("Error: Missing /to flag for event");
-        }
-        int fromFlagIndex = command.indexOf(" /from ");
-        int toFlagIndex = command.indexOf(" /to ");
-
-        // Extract description, fromDate and toDate
-        String description, fromDate, toDate;
-        if (fromFlagIndex < toFlagIndex) {
-            description = command.substring(5, fromFlagIndex).trim();
-            fromDate = command.substring(fromFlagIndex + 6, toFlagIndex).trim();
-            toDate = command.substring(toFlagIndex + 4).trim();
-        } else {
-            description = command.substring(5, toFlagIndex).trim();
-            toDate = command.substring(toFlagIndex + 4, fromFlagIndex).trim();
-            fromDate = command.substring(fromFlagIndex + 6).trim();
-        }
-        if (description.isEmpty()) {
-            throw new BaronException("Error: Missing event description");
-        }
-        if (fromDate.isEmpty()) {
-            throw new BaronException("Error: Missing event from date/time");
-        }
-        if (toDate.isEmpty()) {
-            throw new BaronException("Error: Missing event to date/time");
-        }
-        if (!parseDateTime(fromDate).isBefore(parseDateTime(toDate))) {
-            throw new BaronException("Error: From date must be before to date");
-        }
-
-        // Add event task
-        Baron.addTask(new Event(description, parseDateTime(fromDate), parseDateTime(toDate)));
-    }
-
-    static void handleDelete(String command) throws BaronException {
-        String argument = command.substring(6).trim();
-        int taskNumber = parseTaskNumber(argument);
-
-        // Delete task from tasks
-        Task removed = tasks.remove(taskNumber - 1);
-        System.out.print("Noted. I've removed this task:".indent(INDENT_SIZE + 1));
-        System.out.print(removed.toString().indent(INDENT_SIZE + 3));
-        System.out.print(("Now you have " + tasks.size() + " tasks in the list").indent(INDENT_SIZE + 1));
-        writeTasks();
-    }
-
-    static List<Task> readTasks() {
-        List<Task> tasks = new ArrayList<>();
-        String[] taskStrings = new String[0];
-        try {
-            Path path = Path.of("data", "tasks.txt");
-            Files.createDirectories(path.getParent());
-            if (Files.notExists(path)) {
-                Files.createFile(path);
-                return tasks;
-            }
-            taskStrings = Files.readString(path, StandardCharsets.UTF_8).split("\\R");
-        } catch (IOException e) {
+            storage.readTasks(tasks);
+        } catch (BaronException e) {
             System.err.println(e.getMessage());
         }
-
-        for (String taskString : taskStrings) {
-            if (taskString.isBlank()) {
-                continue;
-            }
-            String[] taskFields = taskString.split(" \\| ");
-            try {
-                Task t = switch (taskFields[0]) {
-                    case "T" -> new ToDo(taskFields[2]);
-                    case "D" -> new Deadline(
-                            taskFields[2],
-                            LocalDateTime.parse(taskFields[3])
-                    );
-                    case "E" -> new Event(
-                            taskFields[2],
-                            LocalDateTime.parse(taskFields[3]),
-                            LocalDateTime.parse(taskFields[4])
-                    );
-                    default -> null;
-                };
-                if (t == null) {
-                    throw new BaronException("");
-                }
-                if (taskFields[1].equals("1")) {
-                    t.markAsDone();
-                }
-                tasks.add(t);
-            } catch (ArrayIndexOutOfBoundsException | DateTimeParseException | BaronException e) {
-                System.out.println("Invalid task: '" + taskString + "'");
-            }
-        }
-        return tasks;
+        parser = new Parser(storage, tasks);
     }
 
-    static void writeTasks() {
-        StringBuilder builder = new StringBuilder();
-        for (Task task : tasks) {
-            builder.append(task.toFileString()).append(System.lineSeparator());
-        }
-
-        try {
-            Path path = Path.of("data", "tasks.txt");
-            Files.createDirectories(path.getParent());
-            if (Files.notExists(path)) {
-                Files.createFile(path);
-            }
-            Files.writeString(path, builder.toString(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
+    /**
+     * Runs Baron until the user enters the exit command.
+     */
+    private void run() {
+        Ui.printIntro();
+        Scanner scanner = new Scanner(System.in);
+        boolean isDone = parser.parse(scanner.nextLine());
+        while (!isDone) {
+            isDone = parser.parse(scanner.nextLine());
         }
     }
 
-    static void appendTask(Task task) {
-        try {
-            Files.writeString(
-                    Path.of("data", "tasks.txt"),
-                    task.toFileString() + System.lineSeparator(),
-                    StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.APPEND
-            );
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
-        }
-    }
-
-    static LocalDateTime parseDateTime(String dateTime) throws BaronException {
-        try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/yyyy HH:mm");
-            return LocalDateTime.parse(dateTime, formatter);
-        } catch (DateTimeParseException e) {
-            throw new BaronException("Error: Date/time must be in d/M/yyyy HH:mm");
-        }
+    /**
+     * Starts the Baron application.
+     */
+    static void main() {
+        new Baron(Path.of("data", "tasks.txt")).run();
     }
 }
