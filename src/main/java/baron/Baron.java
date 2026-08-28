@@ -1,11 +1,22 @@
+package baron;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import Task.Deadline;
-import Task.Event;
-import Task.Task;
-import Task.ToDo;
 
+import baron.task.Deadline;
+import baron.task.Event;
+import baron.task.Task;
+import baron.task.ToDo;
+
+/**
+ * Provides a command-line chatbot for managing a list of tasks.
+ */
 public class Baron {
     static final int INDENT_SIZE = 4;
     static String banner = """
@@ -23,9 +34,11 @@ public class Baron {
     static String intro = "Hello! I'm Baron\nI am a useful chatbot!";
     static String outro = "Bye. Hope you have a wonderful day!";
     static String line = "____________________________________________________________";
-    static List<Task> tasks = new ArrayList<Task>();
+    static List<Task> tasks = new ArrayList<>();
 
     static void main(String[] args) {
+        tasks = readTasks(); // Read tasks in tasks.txt
+        
         // Prints intro
         System.out.print(line.indent(INDENT_SIZE));
         System.out.print(banner.indent(INDENT_SIZE + 1));
@@ -106,6 +119,7 @@ public class Baron {
         tasks.get(taskNumber - 1).markAsDone();
         System.out.print("Nice! I've marked this task as done:".indent(INDENT_SIZE + 1));
         System.out.print(tasks.get(taskNumber - 1).toString().indent(INDENT_SIZE + 3));
+        writeTasks();
     }
 
     static void handleUnmark(String command) throws BaronException {
@@ -116,6 +130,7 @@ public class Baron {
         tasks.get(taskNumber - 1).markAsNotDone();
         System.out.print("OK, I've marked this task as not done yet:".indent(INDENT_SIZE + 1));
         System.out.print(tasks.get(taskNumber - 1).toString().indent(INDENT_SIZE + 3));
+        writeTasks();
     }
 
     static void addTask(Task task) {
@@ -123,6 +138,7 @@ public class Baron {
         System.out.print("Got it. I've added this task:".indent(INDENT_SIZE + 1));
         System.out.print(task.toString().indent(INDENT_SIZE + 3));
         System.out.print(("Now you have " + tasks.size() + " tasks in the list").indent(INDENT_SIZE + 1));
+        appendTask(task);
     }
 
     static void handleToDo(String command) throws BaronException {
@@ -202,5 +218,79 @@ public class Baron {
         System.out.print("Noted. I've removed this task:".indent(INDENT_SIZE + 1));
         System.out.print(removed.toString().indent(INDENT_SIZE + 3));
         System.out.print(("Now you have " + tasks.size() + " tasks in the list").indent(INDENT_SIZE + 1));
+        writeTasks();
+    }
+
+    static List<Task> readTasks() {
+        List<Task> tasks = new ArrayList<>();
+        String[] taskStrings = new String[0];
+        try {
+            Path path = Path.of("data", "tasks.txt");
+            Files.createDirectories(path.getParent());
+            if (Files.notExists(path)) {
+                Files.createFile(path);
+                return tasks;
+            }
+            taskStrings = Files.readString(path, StandardCharsets.UTF_8).split("\\R");
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
+
+        for (String taskString : taskStrings) {
+            if (taskString.isBlank()) {
+                continue;
+            }
+            String[] taskFields = taskString.split(" \\| ");
+            try {
+                Task t = switch (taskFields[0]) {
+                    case "T" -> new ToDo(taskFields[2]);
+                    case "D" -> new Deadline(taskFields[2], taskFields[3]);
+                    case "E" -> new Event(taskFields[2], taskFields[3], taskFields[4]);
+                    default -> null;
+                };
+                if (t == null) {
+                    throw new BaronException("");
+                }
+                if (taskFields[1].equals("1")) {
+                    t.markAsDone();
+                }
+                tasks.add(t);
+            } catch (ArrayIndexOutOfBoundsException | BaronException e) {
+                System.out.println("Invalid task: '" + taskString + "'");
+            }
+        }
+        return tasks;
+    }
+
+    static void writeTasks() {
+        StringBuilder builder = new StringBuilder();
+        for (Task task : tasks) {
+            builder.append(task.toFileString()).append(System.lineSeparator());
+        }
+
+        try {
+            Path path = Path.of("data", "tasks.txt");
+            Files.createDirectories(path.getParent());
+            if (Files.notExists(path)) {
+                Files.createFile(path);
+            }
+            Files.writeString(path, builder.toString(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
+    }
+
+    static void appendTask(Task task) {
+        try {
+            Files.writeString(
+                    Path.of("data", "tasks.txt"),
+                    task.toFileString() + System.lineSeparator(),
+                    StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND
+            );
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
     }
 }
