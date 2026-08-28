@@ -1,11 +1,14 @@
 package baron.task;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 /**
  * Represents a task that takes place between a start and end time.
  */
 public class Event extends Task {
-    private String fromDate;
-    private String toDate;
+    private LocalDateTime fromDate;
+    private LocalDateTime toDate;
 
     /**
      * Creates an event task with the specified description and time range.
@@ -14,7 +17,7 @@ public class Event extends Task {
      * @param fromDate The event start time.
      * @param toDate The event end time.
      */
-    public Event(String description, String fromDate, String toDate) {
+    public Event(String description, LocalDateTime fromDate, LocalDateTime toDate) {
         super(description);
         this.fromDate = fromDate;
         this.toDate = toDate;
@@ -22,10 +25,12 @@ public class Event extends Task {
 
     @Override
     public String toString() {
-        return "[E]" + super.toString() + " (from: " + this.fromDate + " to: " + this.toDate + ")";
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a, d MMM yyyy");
+        return "[E]" + super.toString()
+                + " (from: " + this.fromDate.format(formatter)
+                + " to: " + this.toDate.format(formatter) + ")";
     }
 
-    /** {@inheritDoc} */
     @Override
     public String toFileString() {
         return "E | " + super.toFileString() + " | " + this.fromDate + " | " + this.toDate;
