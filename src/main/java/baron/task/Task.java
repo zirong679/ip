@@ -4,7 +4,7 @@ package baron.task;
  * Represents a task that can be marked as completed.
  */
 public class Task {
-    private String description;
+    private final String description;
     private boolean isDone;
 
     /**
@@ -14,30 +14,35 @@ public class Task {
      */
     public Task(String description) {
         this.description = description;
-        this.isDone = false;
+        isDone = false;
     }
 
+    /**
+     * Returns the icon representing this task's completion status.
+     *
+     * @return {@code X} for a completed task, or a blank space otherwise.
+     */
     public String getStatusIcon() {
-        return (isDone ? "X" : " "); // mark done task with X
+        return (isDone ? "X" : " ");
     }
 
     /**
      * Marks this task as completed.
      */
     public void markAsDone() {
-        this.isDone = true;
+        isDone = true;
     }
 
     /**
      * Marks this task as not completed.
      */
     public void markAsNotDone() {
-        this.isDone = false;
+        isDone = false;
     }
 
     @Override
     public String toString() {
-        return "[" + this.getStatusIcon() + "] " + this.description;
+        return "[" + getStatusIcon() + "] " + description;
     }
 
     /**
@@ -46,6 +51,6 @@ public class Task {
      * @return The persistent representation of this task.
      */
     public String toFileString() {
-        return (this.isDone ? "1" : "0") + " | " + this.description;
+        return (isDone ? "1" : "0") + " | " + description;
     }
 }

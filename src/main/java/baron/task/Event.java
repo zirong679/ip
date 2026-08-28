@@ -7,8 +7,8 @@ import java.time.format.DateTimeFormatter;
  * Represents a task that takes place between a start and end time.
  */
 public class Event extends Task {
-    private LocalDateTime fromDate;
-    private LocalDateTime toDate;
+    private final LocalDateTime fromDate;
+    private final LocalDateTime toDate;
 
     /**
      * Creates an event task with the specified description and time range.
@@ -27,12 +27,12 @@ public class Event extends Task {
     public String toString() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a, d MMM yyyy");
         return "[E]" + super.toString()
-                + " (from: " + this.fromDate.format(formatter)
-                + " to: " + this.toDate.format(formatter) + ")";
+                + " (from: " + fromDate.format(formatter)
+                + " to: " + toDate.format(formatter) + ")";
     }
 
     @Override
     public String toFileString() {
-        return "E | " + super.toFileString() + " | " + this.fromDate + " | " + this.toDate;
+        return "E | " + super.toFileString() + " | " + fromDate + " | " + toDate;
     }
 }
