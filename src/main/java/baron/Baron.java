@@ -20,7 +20,7 @@ public class Baron {
         try {
             storage.readTasks(tasks);
         } catch (BaronException e) {
-            System.err.println(e.getMessage());
+            System.out.println(e.getMessage());
         }
         parser = new Parser(storage, tasks);
     }
@@ -31,9 +31,10 @@ public class Baron {
     private void run() {
         Ui.printIntro();
         Scanner scanner = new Scanner(System.in);
-        boolean isDone = parser.parse(scanner.nextLine());
-        while (!isDone) {
-            isDone = parser.parse(scanner.nextLine());
+        while (scanner.hasNextLine()) {
+            if (parser.parse(scanner.nextLine())) {
+                break;
+            }
         }
     }
 
