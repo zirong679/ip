@@ -39,7 +39,7 @@ public class ParserTest {
     }
 
     @Test
-    public void parse_bye_returnTrue() {
+    public void parse_bye_returnsTrue() {
         TaskList tasks = new TaskList();
         Parser parser = createParser(tasks);
 
@@ -49,7 +49,7 @@ public class ParserTest {
     }
 
     @Test
-    public void parse_list_printTasks() {
+    public void parse_list_printsTasks() {
         TaskList tasks = new TaskList();
         tasks.addTask(new Todo("buy milk"));
         Parser parser = createParser(tasks);
@@ -60,7 +60,7 @@ public class ParserTest {
     }
 
     @Test
-    public void parse_todoWithDescription_addAndSaveTodo() throws IOException {
+    public void parse_todoWithDescription_addsAndSavesTodo() throws IOException {
         TaskList tasks = new TaskList();
         Parser parser = createParser(tasks);
 
@@ -72,7 +72,7 @@ public class ParserTest {
     }
 
     @Test
-    public void parse_todoWithoutDescription_printErrorWithoutAddingTask() throws IOException {
+    public void parse_todoWithoutDescription_printsErrorWithoutAddingTask() throws IOException {
         TaskList tasks = new TaskList();
         Parser parser = createParser(tasks);
 
@@ -84,7 +84,7 @@ public class ParserTest {
     }
 
     @Test
-    public void parse_deadlineWithDescriptionWithDate_addAndSaveDeadline() throws IOException {
+    public void parse_deadlineWithDescriptionWithDate_addsAndSavesDeadline() throws IOException {
         TaskList tasks = new TaskList();
         Parser parser = createParser(tasks);
 
@@ -96,7 +96,7 @@ public class ParserTest {
     }
 
     @Test
-    public void parse_deadlineWithDescriptionWithoutDate_printErrorWithoutAddingTask() throws IOException {
+    public void parse_deadlineWithDescriptionWithoutDate_printsErrorWithoutAddingTask() throws IOException {
         TaskList tasks = new TaskList();
         Parser parser = createParser(tasks);
 
@@ -108,7 +108,7 @@ public class ParserTest {
     }
 
     @Test
-    public void parse_deadlineWithDescriptionWithInvalidDate_printErrorWithoutAddingTask() throws IOException {
+    public void parse_deadlineWithInvalidDate_printsErrorWithoutAddingTask() throws IOException {
         TaskList tasks = new TaskList();
         Parser parser = createParser(tasks);
 
@@ -136,7 +136,7 @@ public class ParserTest {
     }
 
     @Test
-    public void parse_eventToDateEqualFromDate_printErrorWithoutAddingTask() throws IOException {
+    public void parse_eventToDateEqualFromDate_printsErrorWithoutAddingTask() throws IOException {
         TaskList tasks = new TaskList();
         Parser parser = createParser(tasks);
 
@@ -199,7 +199,7 @@ public class ParserTest {
     }
 
     @Test
-    public void parse_invalidCommand_printUnknownCommand() {
+    public void parse_invalidCommand_printsUnknownCommand() {
         TaskList tasks = new TaskList();
         Parser parser = createParser(tasks);
 

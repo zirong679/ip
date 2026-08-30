@@ -18,10 +18,10 @@ import baron.task.Todo;
 /** Tests persistent task-file operations performed by {@link Storage}. */
 public class StorageTest {
     @TempDir
-    Path tempDir;
+    private Path tempDir;
 
     @Test
-    public void constructor_missingParentDirectories_createTaskFile() {
+    public void constructor_missingParentDirectories_createsTaskFile() {
         Path filePath = tempDir.resolve("data").resolve("tasks.txt");
 
         new Storage(filePath);
@@ -30,7 +30,7 @@ public class StorageTest {
     }
 
     @Test
-    public void readTasks_emptyFile_addNothingToTaskList() throws BaronException {
+    public void readTasks_emptyFile_addsNoTasks() throws BaronException {
         Path filePath = tempDir.resolve("tasks.txt");
         Storage storage = new Storage(filePath);
         TaskList tasks = new TaskList();
@@ -41,7 +41,7 @@ public class StorageTest {
     }
 
     @Test
-    public void readTasks_validTasks_addTasksToTaskList() throws Exception {
+    public void readTasks_validTasks_addsTasksToTaskList() throws Exception {
         Path filePath = tempDir.resolve("tasks.txt");
         Files.writeString(
                 filePath,
@@ -60,7 +60,7 @@ public class StorageTest {
     }
 
     @Test
-    public void readTasks_blankLines_ignoreBlankLines() throws Exception {
+    public void readTasks_blankLines_ignoresBlankLines() throws Exception {
         Path filePath = tempDir.resolve("tasks.txt");
         Files.writeString(filePath, "\nT | 0 | buy milk\n\n");
         Storage storage = new Storage(filePath);
@@ -72,7 +72,7 @@ public class StorageTest {
     }
 
     @Test
-    public void readTasks_invalidTask_throwBaronException() throws Exception {
+    public void readTasks_invalidTask_throwsBaronException() throws Exception {
         Path filePath = tempDir.resolve("tasks.txt");
         Files.writeString(filePath, "D | 0 | submit report | not-a-date\n");
         Storage storage = new Storage(filePath);
@@ -84,7 +84,7 @@ public class StorageTest {
     }
 
     @Test
-    public void writeTasks_existingContent_overwriteExistingContent() throws Exception {
+    public void writeTasks_existingContent_overwritesExistingContent() throws Exception {
         Path filePath = tempDir.resolve("tasks.txt");
         Files.writeString(filePath, "old contents");
         Storage storage = new Storage(filePath);
@@ -107,14 +107,16 @@ public class StorageTest {
     }
 
     @Test
-    public void appendTask_existingContent_preserveExistingContent() throws Exception {
+    public void appendTask_existingContent_preservesExistingContent() throws Exception {
         Path filePath = tempDir.resolve("tasks.txt");
         Storage storage = new Storage(filePath);
         storage.appendTask(new Todo("buy milk"));
 
-        storage.appendTask(new Event("team meeting",
+        storage.appendTask(new Event(
+                "team meeting",
                 LocalDateTime.of(2026, 8, 31, 10, 0),
-                LocalDateTime.of(2026, 8, 31, 11, 0)));
+                LocalDateTime.of(2026, 8, 31, 11, 0)
+        ));
 
         assertEquals(
                 """
