@@ -28,18 +28,29 @@ public class Task {
 
     /**
      * Marks this task as completed.
+     *
+     * @return This task, after it has been marked as completed.
      */
-    public void markAsDone() {
+    public Task markAsDone() {
         isDone = true;
+        return this;
     }
 
     /**
      * Marks this task as not completed.
+     *
+     * @return This task, after it has been marked as not completed.
      */
-    public void markAsNotDone() {
+    public Task markAsNotDone() {
         isDone = false;
+        return this;
     }
 
+    /**
+     * Returns a user-facing representation containing this task's completion status and description.
+     *
+     * @return The formatted task description.
+     */
     @Override
     public String toString() {
         return "[" + getStatusIcon() + "] " + description;

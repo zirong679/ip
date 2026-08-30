@@ -85,6 +85,11 @@ public class TaskList {
         return builder.toString();
     }
 
+    /**
+     * Returns the tasks as a numbered, user-facing list in insertion order.
+     *
+     * @return The numbered task list, with each task on a separate line.
+     */
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();

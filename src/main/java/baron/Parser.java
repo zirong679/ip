@@ -53,7 +53,7 @@ public class Parser {
             } else if (command.matches("^delete(\\s+.*)?$")) {
                 handleDelete(command);
             } else {
-                throw new BaronException("Error: Unknown command");
+                throw new BaronException("Unknown command");
             }
         } catch (BaronException e) {
             Ui.printException(e);
@@ -93,7 +93,7 @@ public class Parser {
         LocalDateTime fromDate = parseDateTime(getArgument("/from ", command));
         LocalDateTime toDate = parseDateTime(getArgument("/to ", command));
         if (!fromDate.isBefore(toDate)) {
-            throw new BaronException("Error: /to date must be after /from date");
+            throw new BaronException("/to date must be after /from date");
         }
         Task task = tasks.addTask(new Event(description, fromDate, toDate));
         Ui.addTaskSuccess(task, tasks);
@@ -109,7 +109,7 @@ public class Parser {
     private String getArgument(String flag, String command) throws BaronException {
         StringBuilder builder = new StringBuilder();
         if (!command.contains(flag)) {
-            throw new BaronException("Error: Argument for " + flag.trim() + " is missing");
+            throw new BaronException("Argument for " + flag.trim() + " is missing");
         }
         for (int i = command.indexOf(flag) + flag.length(); i < command.length(); i++) {
             if (command.charAt(i) == '/') {
@@ -119,7 +119,7 @@ public class Parser {
         }
         String argument = builder.toString().trim();
         if (argument.isEmpty()) {
-            throw new BaronException("Error: Argument for " + flag.trim() + " is missing");
+            throw new BaronException("Argument for " + flag.trim() + " is missing");
         }
         return argument;
     }
@@ -129,27 +129,20 @@ public class Parser {
         try {
             taskNumber = Integer.parseInt(argument);
         } catch (NumberFormatException e) {
-            throw new BaronException("Error: Task number must be an integer");
+            throw new BaronException("Task number must be an integer");
         }
         if (taskNumber < 1 || taskNumber > tasks.size()) {
-            throw new BaronException("Error: Invalid task number");
+            throw new BaronException("Invalid task number");
         }
         return taskNumber;
     }
 
-    /**
-     * Converts a date and time in the accepted command format to a {@code LocalDateTime}.
-     *
-     * @param dateTime The date and time supplied by the user.
-     * @return The parsed date and time.
-     * @throws BaronException If the input does not use the required format.
-     */
-    static LocalDateTime parseDateTime(String dateTime) throws BaronException {
+    private LocalDateTime parseDateTime(String dateTime) throws BaronException {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyy HHmm");
             return LocalDateTime.parse(dateTime, formatter);
         } catch (DateTimeParseException e) {
-            throw new BaronException("Error: Date/time must be in ddMMyyyy HHmm");
+            throw new BaronException("Date/time must be in ddMMyyyy HHmm");
         }
     }
 }

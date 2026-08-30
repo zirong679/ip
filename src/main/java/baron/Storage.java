@@ -32,7 +32,7 @@ public class Storage {
                 Files.createFile(filePath);
             }
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            System.out.println(e.getMessage());
         }
     }
 
@@ -47,7 +47,7 @@ public class Storage {
         try {
             taskStrings = Files.readString(filePath, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            System.out.println(e.getMessage());
         }
 
         for (String taskString : taskStrings.split("\\R")) {
@@ -67,7 +67,7 @@ public class Storage {
         try {
             Files.writeString(filePath, tasks.toFileString(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            System.out.println(e.getMessage());
         }
     }
 
@@ -86,7 +86,7 @@ public class Storage {
                     StandardOpenOption.APPEND
             );
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            System.out.println(e.getMessage());
         }
     }
 
@@ -98,10 +98,7 @@ public class Storage {
         try {
             Task task = switch (taskFields[0]) {
                 case "T" -> new Todo(taskFields[2]);
-                case "D" -> new Deadline(
-                        taskFields[2],
-                        LocalDateTime.parse(taskFields[3])
-                );
+                case "D" -> new Deadline(taskFields[2], LocalDateTime.parse(taskFields[3]));
                 case "E" -> new Event(
                         taskFields[2],
                         LocalDateTime.parse(taskFields[3]),
@@ -114,7 +111,7 @@ public class Storage {
             }
             return task;
         } catch (ArrayIndexOutOfBoundsException | DateTimeParseException | BaronException e) {
-            throw new BaronException("Error: Invalid task '" + taskString + "'");
+            throw new BaronException("Invalid task '" + taskString + "'");
         }
     }
 }
