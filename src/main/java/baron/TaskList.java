@@ -34,8 +34,9 @@ public class TaskList {
      * @return The marked task.
      */
     public Task markTask(int taskIndex) {
-        tasks.get(taskIndex).markAsDone();
-        return tasks.get(taskIndex);
+        Task task = tasks.get(taskIndex);
+        task.markAsDone();
+        return task;
     }
 
     /**
@@ -45,8 +46,9 @@ public class TaskList {
      * @return The unmarked task.
      */
     public Task unmarkTask(int taskIndex) {
-        tasks.get(taskIndex).markAsNotDone();
-        return tasks.get(taskIndex);
+        Task task = tasks.get(taskIndex);
+        task.markAsNotDone();
+        return task;
     }
 
     /**

@@ -40,8 +40,10 @@ public class Baron {
 
     /**
      * Starts the Baron application.
+     *
+     * @param args Command-line arguments, which Baron does not use.
      */
-    static void main() {
+    public static void main(String[] args) {
         new Baron(Path.of("data", "tasks.txt")).run();
     }
 }
