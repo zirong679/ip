@@ -199,6 +199,31 @@ public class ParserTest {
     }
 
     @Test
+    public void parse_tasksMatchKeyword_printsMatchingTasks() {
+        TaskList tasks = new TaskList();
+        tasks.addTask(new Todo("sell milk"));
+        tasks.addTask(new Todo("buy milk"));
+        tasks.addTask(new Todo("buy cheese"));
+        Parser parser = createParser(tasks);
+
+        parser.parse("find buy");
+
+        assertTrue(output.toString().contains("1.[T][ ] buy milk"));
+        assertTrue(output.toString().contains("2.[T][ ] buy cheese"));
+    }
+
+    @Test
+    public void parse_noTasksMatchKeyword_printsError() {
+        TaskList tasks = new TaskList();
+        tasks.addTask(new Todo("buy milk"));
+        Parser parser = createParser(tasks);
+
+        parser.parse("find sell");
+
+        assertTrue(output.toString().contains("None of your tasks match 'sell'"));
+    }
+
+    @Test
     public void parse_invalidCommand_printUnknownCommand() {
         TaskList tasks = new TaskList();
         Parser parser = createParser(tasks);

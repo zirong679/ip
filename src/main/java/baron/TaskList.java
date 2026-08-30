@@ -73,6 +73,22 @@ public class TaskList {
     }
 
     /**
+     * Returns a task list containing tasks whose descriptions include the specified keyword.
+     *
+     * @param keyword The keyword to search for.
+     * @return A task list of matching tasks, in their original order.
+     */
+    public TaskList findTasks(String keyword) throws BaronException {
+        TaskList matchingTasks = new TaskList();
+        for (Task task : tasks) {
+            if (task.hasKeyword(keyword)) {
+                matchingTasks.addTask(task);
+            }
+        }
+        return matchingTasks;
+    }
+
+    /**
      * Returns all tasks in the persistent file format.
      *
      * @return The persistent representation of this list.
