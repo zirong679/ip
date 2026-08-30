@@ -33,17 +33,17 @@ public class Ui {
 
     /** Displays the welcome message. */
     public static void printIntro() {
-        printLine();
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
         System.out.print(BANNER.indent(TEXT_INDENT_SIZE));
         System.out.print(INTRO.indent(TEXT_INDENT_SIZE));
-        printLine();
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
     }
 
     /** Displays the farewell message. */
     public static void printOutro() {
-        printLine();
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
         System.out.print(OUTRO.indent(TEXT_INDENT_SIZE));
-        printLine();
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
     }
 
     /**
@@ -51,15 +51,11 @@ public class Ui {
      *
      * @param tasks The task list to display.
      */
-    public static void printList(TaskList tasks) {
-        printLine();
-        if (tasks.size() == 0) {
-            System.out.print("There are no tasks in your list".indent(TEXT_INDENT_SIZE));
-        } else {
-            System.out.print("Here are the tasks in your list:".indent(TEXT_INDENT_SIZE));
-            System.out.print(tasks.toString().indent(TEXT_INDENT_SIZE));
-        }
-        printLine();
+    public static void printAllTasks(TaskList tasks) {
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
+        System.out.print("Here are the tasks in your list:".indent(TEXT_INDENT_SIZE));
+        System.out.print(tasks.toString().indent(TEXT_INDENT_SIZE));
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
     }
 
     /**
@@ -67,11 +63,11 @@ public class Ui {
      *
      * @param task The marked task.
      */
-    public static void markTaskSuccess(Task task) {
-        printLine();
+    public static void printMarkedTask(Task task) {
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
         System.out.print("Nice! I've marked this task as done:".indent(TEXT_INDENT_SIZE));
         System.out.print(task.toString().indent(TASK_INDENT_SIZE));
-        printLine();
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
     }
 
     /**
@@ -79,11 +75,11 @@ public class Ui {
      *
      * @param task The unmarked task.
      */
-    public static void unmarkTaskSuccess(Task task) {
-        printLine();
+    public static void printUnmarkedTask(Task task) {
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
         System.out.print("OK, I've marked this task as not done yet:".indent(TEXT_INDENT_SIZE));
         System.out.print(task.toString().indent(TASK_INDENT_SIZE));
-        printLine();
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
     }
 
     /**
@@ -92,12 +88,12 @@ public class Ui {
      * @param task The added task.
      * @param tasks The updated task list.
      */
-    public static void addTaskSuccess(Task task, TaskList tasks) {
-        printLine();
+    public static void printAddedTask(Task task, TaskList tasks) {
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
         System.out.print("Got it. I've added this task:".indent(TEXT_INDENT_SIZE));
         System.out.print(task.toString().indent(TASK_INDENT_SIZE));
         System.out.print(("Now you have " + tasks.size() + " tasks in the list").indent(TEXT_INDENT_SIZE));
-        printLine();
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
     }
 
     /**
@@ -106,12 +102,24 @@ public class Ui {
      * @param task The removed task.
      * @param tasks The updated task list.
      */
-    public static void deleteTaskSuccess(Task task, TaskList tasks) {
-        printLine();
+    public static void printDeletedTask(Task task, TaskList tasks) {
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
         System.out.print("Noted. I've removed this task:".indent(TEXT_INDENT_SIZE));
         System.out.print(task.toString().indent(TASK_INDENT_SIZE));
         System.out.print(("Now you have " + tasks.size() + " tasks in the list").indent(TEXT_INDENT_SIZE));
-        printLine();
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
+    }
+
+    /**
+     * Displays tasks whose descriptions match a search keyword.
+     *
+     * @param tasks The matching tasks to display.
+     */
+    public static void printMatchingTasks(TaskList tasks) {
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
+        System.out.print("Here are the matching tasks in your list:".indent(TEXT_INDENT_SIZE));
+        System.out.print(tasks.toString().indent(TASK_INDENT_SIZE));
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
     }
 
     /**
@@ -119,14 +127,9 @@ public class Ui {
      *
      * @param exception The error to display.
      */
-    public static void printException(BaronException exception) {
-        printLine();
+    public static void printBaronException(BaronException exception) {
+        System.out.print(LINE.indent(LINE_INDENT_SIZE));
         System.out.print(exception.getMessage().indent(TEXT_INDENT_SIZE));
-        printLine();
-    }
-
-    /** Prints the decorative line that frames each user-interface message. */
-    private static void printLine() {
         System.out.print(LINE.indent(LINE_INDENT_SIZE));
     }
 }

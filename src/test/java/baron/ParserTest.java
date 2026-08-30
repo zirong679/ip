@@ -120,7 +120,7 @@ public class ParserTest {
     }
 
     @Test
-    public void parse_eventWithDescriptionWithDateRange_addAndSaveEvent() throws IOException {
+    public void parse_eventWithDescriptionWithDateRange_addsAndSavesEvent() throws IOException {
         TaskList tasks = new TaskList();
         Parser parser = createParser(tasks);
 
@@ -148,7 +148,7 @@ public class ParserTest {
     }
 
     @Test
-    public void parse_markValidTaskNumber_markAndSaveTask() throws IOException {
+    public void parse_markValidTaskNumber_marksAndSavesTask() throws IOException {
         TaskList tasks = new TaskList();
         tasks.addTask(new Todo("buy milk"));
         Parser parser = createParser(tasks);
@@ -160,7 +160,7 @@ public class ParserTest {
     }
 
     @Test
-    public void parse_unmarkValidTaskNumber_unmarkAndSaveTask() throws IOException {
+    public void parse_unmarkValidTaskNumber_unmarksAndSavesTask() throws IOException {
         TaskList tasks = new TaskList();
         Todo task = new Todo("buy milk");
         tasks.addTask(task.markAsDone());
@@ -173,7 +173,7 @@ public class ParserTest {
     }
 
     @Test
-    public void parse_deleteValidTaskNumber_deleteTask() throws IOException {
+    public void parse_deleteValidTaskNumber_deletesTask() throws IOException {
         TaskList tasks = new TaskList();
         tasks.addTask(new Todo("buy milk"));
         tasks.addTask(new Todo("read book"));
@@ -187,7 +187,7 @@ public class ParserTest {
     }
 
     @Test
-    public void parse_deleteInvalidTaskNumber_printErrorWithoutDeletingTask() {
+    public void parse_deleteInvalidTaskNumber_printsErrorWithoutDeletingTask() {
         TaskList tasks = new TaskList();
         tasks.addTask(new Todo("buy milk"));
         Parser parser = createParser(tasks);
@@ -196,6 +196,31 @@ public class ParserTest {
 
         assertEquals(1, tasks.size());
         assertTrue(output.toString().contains("Task number must be an integer"));
+    }
+
+    @Test
+    public void parse_tasksMatchKeyword_printsMatchingTasks() {
+        TaskList tasks = new TaskList();
+        tasks.addTask(new Todo("sell milk"));
+        tasks.addTask(new Todo("buy milk"));
+        tasks.addTask(new Todo("buy cheese"));
+        Parser parser = createParser(tasks);
+
+        parser.parse("find buy");
+
+        assertTrue(output.toString().contains("1.[T][ ] buy milk"));
+        assertTrue(output.toString().contains("2.[T][ ] buy cheese"));
+    }
+
+    @Test
+    public void parse_noTasksMatchKeyword_printsError() {
+        TaskList tasks = new TaskList();
+        tasks.addTask(new Todo("buy milk"));
+        Parser parser = createParser(tasks);
+
+        parser.parse("find sell");
+
+        assertTrue(output.toString().contains("None of your tasks match 'sell'"));
     }
 
     @Test

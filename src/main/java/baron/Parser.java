@@ -39,7 +39,7 @@ public class Parser {
             if (command.equals("bye")) {
                 Ui.printOutro();
             } else if (command.equals("list")) {
-                Ui.printList(tasks);
+                handleList();
             } else if (command.matches("^mark(\\s+.*)?$")) {
                 handleMark(command);
             } else if (command.matches("^unmark(\\s+.*)?$")) {
@@ -52,31 +52,40 @@ public class Parser {
                 handleEvent(command);
             } else if (command.matches("^delete(\\s+.*)?$")) {
                 handleDelete(command);
+            } else if (command.matches("^find(\\s+.*)?$")) {
+                handleFind(command);
             } else {
                 throw new BaronException("Unknown command");
             }
         } catch (BaronException e) {
-            Ui.printException(e);
+            Ui.printBaronException(e);
         }
         return command.equals("bye");
     }
 
+    private void handleList() throws BaronException {
+        if (tasks.size() == 0) {
+            throw new BaronException("There are no tasks in your list");
+        }
+        Ui.printAllTasks(tasks);
+    }
+
     private void handleMark(String command) throws BaronException {
         int taskIndex = parseTaskNumber(getArgument("mark ", command)) - 1;
-        Ui.markTaskSuccess(tasks.markTask(taskIndex));
+        Ui.printMarkedTask(tasks.markTask(taskIndex));
         storage.writeTasks(tasks);
     }
 
     private void handleUnmark(String command) throws BaronException {
         int taskIndex = parseTaskNumber(getArgument("unmark ", command)) - 1;
-        Ui.unmarkTaskSuccess(tasks.unmarkTask(taskIndex));
+        Ui.printUnmarkedTask(tasks.unmarkTask(taskIndex));
         storage.writeTasks(tasks);
     }
 
     private void handleTodo(String command) throws BaronException {
         String description = getArgument("todo ", command);
         Task task = tasks.addTask(new Todo(description));
-        Ui.addTaskSuccess(task, tasks);
+        Ui.printAddedTask(task, tasks);
         storage.appendTask(task);
     }
 
@@ -84,7 +93,7 @@ public class Parser {
         String description = getArgument("deadline ", command);
         LocalDateTime deadline = parseDateTime(getArgument("/by ", command));
         Task task = tasks.addTask(new Deadline(description, deadline));
-        Ui.addTaskSuccess(task, tasks);
+        Ui.printAddedTask(task, tasks);
         storage.appendTask(task);
     }
 
@@ -96,14 +105,23 @@ public class Parser {
             throw new BaronException("/to date must be after /from date");
         }
         Task task = tasks.addTask(new Event(description, fromDate, toDate));
-        Ui.addTaskSuccess(task, tasks);
+        Ui.printAddedTask(task, tasks);
         storage.appendTask(task);
     }
 
     private void handleDelete(String command) throws BaronException {
         int taskIndex = parseTaskNumber(getArgument("delete ", command)) - 1;
-        Ui.deleteTaskSuccess(tasks.deleteTask(taskIndex), tasks);
+        Ui.printDeletedTask(tasks.deleteTask(taskIndex), tasks);
         storage.writeTasks(tasks);
+    }
+
+    private void handleFind(String command) throws BaronException {
+        String keyword = getArgument("find ", command);
+        TaskList matchingTasks = tasks.findTasks(keyword);
+        if (matchingTasks.size() == 0) {
+            throw new BaronException("None of your tasks match '" + keyword + "'");
+        }
+        Ui.printMatchingTasks(tasks.findTasks(keyword));
     }
 
     private String getArgument(String flag, String command) throws BaronException {
