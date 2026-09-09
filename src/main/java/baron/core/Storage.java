@@ -1,4 +1,4 @@
-package baron;
+package baron.core;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -8,15 +8,17 @@ import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 
-import baron.task.Deadline;
-import baron.task.Event;
-import baron.task.Task;
-import baron.task.Todo;
+import baron.core.exception.BaronException;
+import baron.core.task.Deadline;
+import baron.core.task.Event;
+import baron.core.task.Task;
+import baron.core.task.TaskList;
+import baron.core.task.Todo;
 
 /**
  * Reads and writes Baron tasks in a text file.
  */
-public class Storage {
+class Storage {
     private final Path filePath;
 
     /**
@@ -90,6 +92,13 @@ public class Storage {
         }
     }
 
+    /**
+     * Returns a task reconstructed from one saved task record.
+     *
+     * @param taskString The saved task record.
+     * @return The reconstructed task, or {@code null} for a blank record.
+     * @throws BaronException If the record has an invalid format.
+     */
     private Task parseTaskString(String taskString) throws BaronException {
         if (taskString.isBlank()) {
             return null;

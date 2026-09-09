@@ -1,4 +1,4 @@
-package baron;
+package baron.core.exception;
 
 /**
  * Represents an error caused by an invalid Baron command.

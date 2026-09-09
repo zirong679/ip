@@ -1,23 +1,25 @@
-package baron;
+package baron.core;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
-import baron.task.Deadline;
-import baron.task.Event;
-import baron.task.Task;
-import baron.task.Todo;
+import baron.core.exception.BaronException;
+import baron.core.task.Deadline;
+import baron.core.task.Event;
+import baron.core.task.Task;
+import baron.core.task.TaskList;
+import baron.core.task.Todo;
 
 /**
- * Interprets user commands and coordinates the task list, storage, and user interface.
+ * Parses user commands and updates the task list and persistent storage.
  */
-public class Parser {
+class Parser {
     private final Storage storage;
     private final TaskList tasks;
 
     /**
-     * Creates a parser that operates on the given storage and task list.
+     * Creates a parser that uses the specified storage and task list.
      *
      * @param storage The persistent task storage.
      * @param tasks The task list to update.
@@ -28,102 +30,112 @@ public class Parser {
     }
 
     /**
-     * Processes one user command and displays the corresponding response.
+     * Returns the response produced after processing the specified command.
      *
-     * @param command The command entered by the user.
-     * @return Whether the command ends the application.
+     * @param command The command to process.
+     * @return The response to show to the user.
      */
-    public boolean parse(String command) {
-        command = command.trim();
+    public String parse(String command) {
         try {
             if (command.equals("bye")) {
-                Ui.printOutro();
+                return Response.respondWithOutro();
             } else if (command.equals("list")) {
-                handleList();
+                return handleList();
             } else if (command.matches("^mark(\\s+.*)?$")) {
-                handleMark(command);
+                return handleMark(command);
             } else if (command.matches("^unmark(\\s+.*)?$")) {
-                handleUnmark(command);
+                return handleUnmark(command);
             } else if (command.matches("^todo(\\s+.*)?$")) {
-                handleTodo(command);
+                return handleTodo(command);
             } else if (command.matches("^deadline(\\s+.*)?$")) {
-                handleDeadline(command);
+                return handleDeadline(command);
             } else if (command.matches("^event(\\s+.*)?$")) {
-                handleEvent(command);
+                return handleEvent(command);
             } else if (command.matches("^delete(\\s+.*)?$")) {
-                handleDelete(command);
+                return handleDelete(command);
             } else if (command.matches("^find(\\s+.*)?$")) {
-                handleFind(command);
+                return handleFind(command);
             } else {
                 throw new BaronException("Unknown command");
             }
         } catch (BaronException e) {
-            Ui.printBaronException(e);
+            return Response.respondWithBaronException(e);
         }
-        return command.equals("bye");
     }
 
-    private void handleList() throws BaronException {
+    /** Returns the response for a list command. */
+    private String handleList() throws BaronException {
         if (tasks.size() == 0) {
             throw new BaronException("There are no tasks in your list");
         }
-        Ui.printAllTasks(tasks);
+        return Response.respondWithAllTasks(tasks);
     }
 
-    private void handleMark(String command) throws BaronException {
+    /** Processes a mark command. */
+    private String handleMark(String command) throws BaronException {
         int taskIndex = parseTaskNumber(getArgument("mark ", command)) - 1;
-        Ui.printMarkedTask(tasks.markTask(taskIndex));
+        Task markedTask = tasks.markTask(taskIndex);
         storage.writeTasks(tasks);
+        return Response.respondWithMarkedTask(markedTask);
     }
 
-    private void handleUnmark(String command) throws BaronException {
+    /** Processes an unmark command. */
+    private String handleUnmark(String command) throws BaronException {
         int taskIndex = parseTaskNumber(getArgument("unmark ", command)) - 1;
-        Ui.printUnmarkedTask(tasks.unmarkTask(taskIndex));
+        Task unmarkedTask = tasks.unmarkTask(taskIndex);
         storage.writeTasks(tasks);
+        return Response.respondWithUnmarkedTask(unmarkedTask);
     }
 
-    private void handleTodo(String command) throws BaronException {
+    /** Processes a to-do command. */
+    private String handleTodo(String command) throws BaronException {
         String description = getArgument("todo ", command);
-        Task task = tasks.addTask(new Todo(description));
-        Ui.printAddedTask(task, tasks);
-        storage.appendTask(task);
+        Task addedTask = tasks.addTask(new Todo(description));
+        storage.appendTask(addedTask);
+        return Response.respondWithAddedTask(addedTask, tasks);
     }
 
-    private void handleDeadline(String command) throws BaronException {
+    /** Processes a deadline command. */
+    private String handleDeadline(String command) throws BaronException {
         String description = getArgument("deadline ", command);
         LocalDateTime deadline = parseDateTime(getArgument("/by ", command));
-        Task task = tasks.addTask(new Deadline(description, deadline));
-        Ui.printAddedTask(task, tasks);
-        storage.appendTask(task);
+        Task addedTask = tasks.addTask(new Deadline(description, deadline));
+        storage.appendTask(addedTask);
+        return Response.respondWithAddedTask(addedTask, tasks);
     }
 
-    private void handleEvent(String command) throws BaronException {
+    /** Processes an event command. */
+    private String handleEvent(String command) throws BaronException {
         String description = getArgument("event ", command);
         LocalDateTime fromDate = parseDateTime(getArgument("/from ", command));
         LocalDateTime toDate = parseDateTime(getArgument("/to ", command));
         if (!fromDate.isBefore(toDate)) {
             throw new BaronException("/to date must be after /from date");
         }
-        Task task = tasks.addTask(new Event(description, fromDate, toDate));
-        Ui.printAddedTask(task, tasks);
-        storage.appendTask(task);
+        Task addedTask = tasks.addTask(new Event(description, fromDate, toDate));
+        storage.appendTask(addedTask);
+        return Response.respondWithAddedTask(addedTask, tasks);
     }
 
-    private void handleDelete(String command) throws BaronException {
+    /** Processes a delete command. */
+    private String handleDelete(String command) throws BaronException {
         int taskIndex = parseTaskNumber(getArgument("delete ", command)) - 1;
-        Ui.printDeletedTask(tasks.deleteTask(taskIndex), tasks);
+        Task deletedTask = tasks.deleteTask(taskIndex);
         storage.writeTasks(tasks);
+        return Response.respondWithDeletedTask(deletedTask, tasks);
     }
 
-    private void handleFind(String command) throws BaronException {
+    /** Processes a find command. */
+    private String handleFind(String command) throws BaronException {
         String keyword = getArgument("find ", command);
         TaskList matchingTasks = tasks.findTasks(keyword);
         if (matchingTasks.size() == 0) {
             throw new BaronException("None of your tasks match '" + keyword + "'");
         }
-        Ui.printMatchingTasks(tasks.findTasks(keyword));
+        return Response.respondWithMatchingTasks(matchingTasks);
     }
 
+    /** Returns the non-blank argument that follows the specified command flag. */
     private String getArgument(String flag, String command) throws BaronException {
         StringBuilder builder = new StringBuilder();
         if (!command.contains(flag)) {
@@ -142,6 +154,7 @@ public class Parser {
         return argument;
     }
 
+    /** Returns a valid zero-based task number parsed from the specified argument. */
     private int parseTaskNumber(String argument) throws BaronException {
         int taskNumber;
         try {
@@ -155,6 +168,7 @@ public class Parser {
         return taskNumber;
     }
 
+    /** Returns a date and time parsed from the specified command argument. */
     private LocalDateTime parseDateTime(String dateTime) throws BaronException {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyy HHmm");
