@@ -1,9 +1,7 @@
-package baron;
+package baron.core.task;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import baron.task.Task;
 
 /**
  * Manages the ordered collection of tasks in Baron.
@@ -35,8 +33,7 @@ public class TaskList {
      */
     public Task markTask(int taskIndex) {
         Task task = tasks.get(taskIndex);
-        task.markAsDone();
-        return task;
+        return task.markAsDone();
     }
 
     /**
@@ -47,8 +44,7 @@ public class TaskList {
      */
     public Task unmarkTask(int taskIndex) {
         Task task = tasks.get(taskIndex);
-        task.markAsNotDone();
-        return task;
+        return task.markAsNotDone();
     }
 
     /**
@@ -80,7 +76,7 @@ public class TaskList {
      * @param keyword The keyword to search for.
      * @return A task list of matching tasks, in their original order.
      */
-    public TaskList findTasks(String keyword) throws BaronException {
+    public TaskList findTasks(String keyword) {
         TaskList matchingTasks = new TaskList();
         for (Task task : tasks) {
             if (task.hasKeyword(keyword)) {

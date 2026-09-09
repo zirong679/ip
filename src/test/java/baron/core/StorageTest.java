@@ -1,4 +1,4 @@
-package baron;
+package baron.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -11,9 +11,11 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import baron.task.Deadline;
-import baron.task.Event;
-import baron.task.Todo;
+import baron.core.exception.BaronException;
+import baron.core.task.Deadline;
+import baron.core.task.Event;
+import baron.core.task.TaskList;
+import baron.core.task.Todo;
 
 /** Tests persistent task-file operations performed by {@link Storage}. */
 public class StorageTest {
@@ -30,7 +32,7 @@ public class StorageTest {
     }
 
     @Test
-    public void readTasks_emptyFile_addsNoTasks() throws BaronException {
+    public void readTasks_emptyFile_doesNotAddTasks() throws BaronException {
         Path filePath = tempDir.resolve("tasks.txt");
         Storage storage = new Storage(filePath);
         TaskList tasks = new TaskList();

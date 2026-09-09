@@ -1,4 +1,4 @@
-package baron.task;
+package baron.core.task;
 
 /**
  * Represents a task that can be marked as completed.

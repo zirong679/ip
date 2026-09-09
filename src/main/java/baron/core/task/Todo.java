@@ -1,4 +1,4 @@
-package baron.task;
+package baron.core.task;
 
 /**
  * Represents a task without a deadline or event time.
