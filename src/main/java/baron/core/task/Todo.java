@@ -10,16 +10,7 @@ public class Todo extends Task {
      * @param description The task description.
      */
     public Todo(String description) {
-        super(description);
+        super(TaskType.TODO, description);
     }
 
-    @Override
-    public String toString() {
-        return "[T]" + super.toString();
-    }
-
-    @Override
-    public String toFileString() {
-        return "T | " + super.toFileString();
-    }
 }

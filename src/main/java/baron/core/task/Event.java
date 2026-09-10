@@ -18,7 +18,7 @@ public class Event extends Task {
      * @param toDate The event end time.
      */
     public Event(String description, LocalDateTime fromDate, LocalDateTime toDate) {
-        super(description);
+        super(TaskType.EVENT, description);
         assert fromDate != null && toDate != null : "Event tasks must have start and end times";
         assert fromDate.isBefore(toDate) : "An event's start time must be before its end time";
         this.fromDate = fromDate;
@@ -28,13 +28,13 @@ public class Event extends Task {
     @Override
     public String toString() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a, d MMM yyyy");
-        return "[E]" + super.toString()
+        return super.toString()
                 + " (from: " + fromDate.format(formatter)
                 + " to: " + toDate.format(formatter) + ")";
     }
 
     @Override
     public String toFileString() {
-        return "E | " + super.toFileString() + " | " + fromDate + " | " + toDate;
+        return super.toFileString() + " | " + fromDate + " | " + toDate;
     }
 }

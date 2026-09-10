@@ -13,12 +13,23 @@ import baron.core.task.Deadline;
 import baron.core.task.Event;
 import baron.core.task.Task;
 import baron.core.task.TaskList;
+import baron.core.task.TaskType;
 import baron.core.task.Todo;
 
 /**
  * Reads and writes Baron tasks in a text file.
  */
 class Storage {
+    private static final String FIELD_SEPARATOR = " \\| ";
+    private static final String COMPLETED_TASK_STATUS = "1";
+
+    private static final int TASK_TYPE_FIELD_INDEX = 0;
+    private static final int TASK_STATUS_FIELD_INDEX = 1;
+    private static final int TASK_DESCRIPTION_FIELD_INDEX = 2;
+    private static final int DEADLINE_FIELD_INDEX = 3;
+    private static final int EVENT_START_FIELD_INDEX = 3;
+    private static final int EVENT_END_FIELD_INDEX = 4;
+
     private final Path filePath;
 
     /**
@@ -45,11 +56,12 @@ class Storage {
      * @throws BaronException If a saved task has an invalid format.
      */
     public void readTasks(TaskList tasks) throws BaronException {
-        String taskStrings = "";
+        String taskStrings;
         try {
             taskStrings = Files.readString(filePath, StandardCharsets.UTF_8);
         } catch (IOException e) {
             System.out.println(e.getMessage());
+            return;
         }
 
         for (String taskString : taskStrings.split("\\R")) {
@@ -103,23 +115,26 @@ class Storage {
         if (taskString.isBlank()) {
             return null;
         }
-        String[] taskFields = taskString.split(" \\| ");
+        String[] taskFields = taskString.split(FIELD_SEPARATOR);
         try {
-            Task task = switch (taskFields[0]) {
-                case "T" -> new Todo(taskFields[2]);
-                case "D" -> new Deadline(taskFields[2], LocalDateTime.parse(taskFields[3]));
-                case "E" -> new Event(
-                        taskFields[2],
-                        LocalDateTime.parse(taskFields[3]),
-                        LocalDateTime.parse(taskFields[4])
+            TaskType taskType = TaskType.fromFileCode(taskFields[TASK_TYPE_FIELD_INDEX]);
+            Task task = switch (taskType) {
+                case TODO -> new Todo(taskFields[TASK_DESCRIPTION_FIELD_INDEX]);
+                case DEADLINE -> new Deadline(
+                        taskFields[TASK_DESCRIPTION_FIELD_INDEX],
+                        LocalDateTime.parse(taskFields[DEADLINE_FIELD_INDEX])
                 );
-                default -> throw new BaronException("Unknown task");
+                case EVENT -> new Event(
+                        taskFields[TASK_DESCRIPTION_FIELD_INDEX],
+                        LocalDateTime.parse(taskFields[EVENT_START_FIELD_INDEX]),
+                        LocalDateTime.parse(taskFields[EVENT_END_FIELD_INDEX])
+                );
             };
-            if (taskFields[1].equals("1")) {
+            if (taskFields[TASK_STATUS_FIELD_INDEX].equals(COMPLETED_TASK_STATUS)) {
                 task.markAsDone();
             }
             return task;
-        } catch (ArrayIndexOutOfBoundsException | DateTimeParseException | BaronException e) {
+        } catch (ArrayIndexOutOfBoundsException | DateTimeParseException | IllegalArgumentException e) {
             throw new BaronException("Invalid task '" + taskString + "'");
         }
     }

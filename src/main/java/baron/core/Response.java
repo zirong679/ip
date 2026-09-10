@@ -1,7 +1,5 @@
 package baron.core;
 
-import java.util.List;
-
 import baron.core.exception.BaronException;
 import baron.core.task.Task;
 import baron.core.task.TaskList;
@@ -39,8 +37,7 @@ class Response {
      */
     public static String respondWithAllTasks(TaskList tasks) {
         String message = "Here are the tasks in your list:";
-        List<String> lines = List.of(message, tasks.toString());
-        return String.join("\n", lines);
+        return joinLines(message, tasks.toString());
     }
 
     /**
@@ -51,8 +48,7 @@ class Response {
      */
     public static String respondWithMarkedTask(Task task) {
         String message = "Nice! I've marked this task as done:";
-        List<String> lines = List.of(message, task.toString());
-        return String.join("\n", lines);
+        return joinLines(message, task.toString());
     }
 
     /**
@@ -63,8 +59,7 @@ class Response {
      */
     public static String respondWithUnmarkedTask(Task task) {
         String message = "OK, I've marked this task as not done yet:";
-        List<String> lines = List.of(message, task.toString());
-        return String.join("\n", lines);
+        return joinLines(message, task.toString());
     }
 
     /**
@@ -76,9 +71,7 @@ class Response {
      */
     public static String respondWithAddedTask(Task task, TaskList tasks) {
         String message = "Got it. I've added this task:";
-        String numTasks = "Now you have " + tasks.size() + " tasks in the list";
-        List<String> lines = List.of(message, task.toString(), numTasks);
-        return String.join("\n", lines);
+        return respondWithTaskAndTaskCount(message, task, tasks);
     }
 
     /**
@@ -90,9 +83,20 @@ class Response {
      */
     public static String respondWithDeletedTask(Task task, TaskList tasks) {
         String message = "Noted. I've removed this task:";
+        return respondWithTaskAndTaskCount(message, task, tasks);
+    }
+
+    /**
+     * Returns a message containing a task and the current number of tasks.
+     *
+     * @param message The opening message.
+     * @param task The task to display.
+     * @param tasks The updated task list.
+     * @return The formatted task and task-count message.
+     */
+    private static String respondWithTaskAndTaskCount(String message, Task task, TaskList tasks) {
         String numTasks = "Now you have " + tasks.size() + " tasks in the list";
-        List<String> lines = List.of(message, task.toString(), numTasks);
-        return String.join("\n", lines);
+        return joinLines(message, task.toString(), numTasks);
     }
 
     /**
@@ -103,7 +107,11 @@ class Response {
      */
     public static String respondWithMatchingTasks(TaskList tasks) {
         String message = "Here are the matching tasks in your list:";
-        List<String> lines = List.of(message, tasks.toString());
+        return joinLines(message, tasks.toString());
+    }
+
+    /** Returns the specified message lines separated by line breaks. */
+    private static String joinLines(String... lines) {
         return String.join("\n", lines);
     }
 
