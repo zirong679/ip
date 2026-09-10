@@ -16,8 +16,8 @@ public class Deadline extends Task {
      * @param deadline The time by which the task must be completed.
      */
     public Deadline(String description, LocalDateTime deadline) {
-        assert deadline != null : "Deadline tasks must have a deadline";
         super(TaskType.DEADLINE, description);
+        assert deadline != null : "Deadline tasks must have a deadline";
         this.deadline = deadline;
     }
 

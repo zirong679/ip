@@ -18,9 +18,9 @@ public class Event extends Task {
      * @param toDate The event end time.
      */
     public Event(String description, LocalDateTime fromDate, LocalDateTime toDate) {
+        super(TaskType.EVENT, description);
         assert fromDate != null && toDate != null : "Event tasks must have start and end times";
         assert fromDate.isBefore(toDate) : "An event's start time must be before its end time";
-        super(TaskType.EVENT, description);
         this.fromDate = fromDate;
         this.toDate = toDate;
     }

@@ -129,14 +129,12 @@ class Storage {
                         LocalDateTime.parse(taskFields[EVENT_START_FIELD_INDEX]),
                         LocalDateTime.parse(taskFields[EVENT_END_FIELD_INDEX])
                 );
-                default -> throw new BaronException("Unknown task");
             };
             if (taskFields[TASK_STATUS_FIELD_INDEX].equals(COMPLETED_TASK_STATUS)) {
                 task.markAsDone();
             }
             return task;
-        } catch (ArrayIndexOutOfBoundsException | DateTimeParseException
-                | IllegalArgumentException | BaronException e) {
+        } catch (ArrayIndexOutOfBoundsException | DateTimeParseException | IllegalArgumentException e) {
             throw new BaronException("Invalid task '" + taskString + "'");
         }
     }
