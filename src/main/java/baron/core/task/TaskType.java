@@ -1,7 +1,7 @@
 package baron.core.task;
 
 /**
- * Represents the supported task kinds and their codes in persistent storage.
+ * Represents the supported task kinds and their persistent and display codes.
  */
 public enum TaskType {
     TODO("T"),
@@ -21,6 +21,15 @@ public enum TaskType {
      */
     public String getFileCode() {
         return fileCode;
+    }
+
+    /**
+     * Returns the prefix used when displaying this task kind to the user.
+     *
+     * @return The user-facing task-kind prefix.
+     */
+    public String getDisplayPrefix() {
+        return "[" + fileCode + "]";
     }
 
     /**
