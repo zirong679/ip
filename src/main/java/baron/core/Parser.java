@@ -141,17 +141,14 @@ class Parser {
 
     /** Returns the non-blank argument that follows the specified command flag. */
     private String getArgument(String flag, String command) throws BaronException {
-        StringBuilder builder = new StringBuilder();
-        if (!command.contains(flag)) {
+        int argumentStartIndex = command.indexOf(flag);
+        if (argumentStartIndex == -1) {
             throw new BaronException("Argument for " + flag.trim() + " is missing");
         }
-        for (int i = command.indexOf(flag) + flag.length(); i < command.length(); i++) {
-            if (command.charAt(i) == '/') {
-                break;
-            }
-            builder.append(command.charAt(i));
-        }
-        String argument = builder.toString().trim();
+        argumentStartIndex += flag.length();
+        int nextFlagIndex = command.indexOf('/', argumentStartIndex);
+        int argumentEndIndex = nextFlagIndex == -1 ? command.length() : nextFlagIndex;
+        String argument = command.substring(argumentStartIndex, argumentEndIndex).trim();
         if (argument.isEmpty()) {
             throw new BaronException("Argument for " + flag.trim() + " is missing");
         }
