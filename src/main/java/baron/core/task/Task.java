@@ -1,22 +1,21 @@
 package baron.core.task;
 
+import java.util.UUID;
+
 /**
  * Represents a task that can be marked as completed.
  */
 public abstract class Task {
+    private final UUID uuid;
     private final TaskType taskType;
     private final String description;
     private boolean isDone;
 
-    /**
-     * Creates a task with the specified type and description.
-     *
-     * @param taskType The kind of task.
-     * @param description The task description.
-     */
-    protected Task(TaskType taskType, String description) {
+    protected Task(UUID uuid, TaskType taskType, String description) {
+        assert uuid != null : "Tasks must have a task id";
         assert taskType != null : "Tasks must have a task type";
         assert description != null : "Task descriptions must not be null";
+        this.uuid = uuid;
         this.taskType = taskType;
         this.description = description;
         isDone = false;
@@ -77,6 +76,6 @@ public abstract class Task {
      * @return The persistent representation of this task.
      */
     public String toFileString() {
-        return taskType.getFileCode() + " | " + (isDone ? "1" : "0") + " | " + description;
+        return uuid.toString() + " | " + taskType.getFileCode() + " | " + (isDone ? "1" : "0") + " | " + description;
     }
 }

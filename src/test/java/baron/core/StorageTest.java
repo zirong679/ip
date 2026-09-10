@@ -1,13 +1,17 @@
 package baron.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -17,10 +21,27 @@ import baron.core.task.Event;
 import baron.core.task.TaskList;
 import baron.core.task.Todo;
 
-/** Tests persistent task-file operations performed by {@link Storage}. */
+/**
+ * Tests persistent task-file operations performed by {@link Storage}.
+ */
 public class StorageTest {
     @TempDir
     private Path tempDir;
+
+    private ByteArrayOutputStream output;
+    private PrintStream originalOut;
+
+    @BeforeEach
+    void setUp() {
+        originalOut = System.out;
+        output = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(output));
+    }
+
+    @AfterEach
+    void tearDown() {
+        System.setOut(originalOut);
+    }
 
     @Test
     public void constructor_missingParentDirectories_createsTaskFile() {
@@ -45,14 +66,14 @@ public class StorageTest {
     @Test
     public void readTasks_validTasks_addsTasksToTaskList() throws Exception {
         Path filePath = tempDir.resolve("tasks.txt");
-        Files.writeString(
-                filePath,
+        UUID uuid = UUID.randomUUID();
+        Files.writeString(filePath, String.format(
                 """
-                T | 0 | buy milk
-                D | 1 | submit report | 2026-08-30T18:00
-                E | 0 | team meeting | 2026-08-31T10:00 | 2026-08-31T11:00
-                """
-        );
+                %s | T | 0 | buy milk
+                %s | D | 1 | submit report | 2026-08-30T18:00
+                %s | E | 0 | team meeting | 2026-08-31T10:00 | 2026-08-31T11:00
+                """, uuid, uuid, uuid
+        ));
         Storage storage = new Storage(filePath);
         TaskList tasks = new TaskList();
 
@@ -64,7 +85,7 @@ public class StorageTest {
     @Test
     public void readTasks_blankLines_ignoresBlankLines() throws Exception {
         Path filePath = tempDir.resolve("tasks.txt");
-        Files.writeString(filePath, "\nT | 0 | buy milk\n\n");
+        Files.writeString(filePath, "\n" + UUID.randomUUID() + " | T | 0 | buy milk\n\n");
         Storage storage = new Storage(filePath);
         TaskList tasks = new TaskList();
 
@@ -74,15 +95,19 @@ public class StorageTest {
     }
 
     @Test
-    public void readTasks_invalidTask_throwsBaronException() throws Exception {
+    public void readTasks_invalidTask_reportsInvalidTask() throws Exception {
         Path filePath = tempDir.resolve("tasks.txt");
-        Files.writeString(filePath, "D | 0 | submit report | not-a-date\n");
+        UUID uuid = UUID.randomUUID();
+        Files.writeString(filePath, uuid + " | D | 0 | submit report | not-a-date\n");
         Storage storage = new Storage(filePath);
         TaskList tasks = new TaskList();
 
-        BaronException exception = assertThrows(BaronException.class, () -> storage.readTasks(tasks));
+        storage.readTasks(tasks);
 
-        assertEquals("Invalid task 'D | 0 | submit report | not-a-date'", exception.getMessage());
+        assertEquals(
+                String.format("Invalid task '%s | D | 0 | submit report | not-a-date'\n", uuid),
+                output.toString()
+        );
     }
 
     @Test
@@ -91,8 +116,10 @@ public class StorageTest {
         Files.writeString(filePath, "old contents");
         Storage storage = new Storage(filePath);
         TaskList tasks = new TaskList();
-        tasks.addTask(new Todo("buy milk"));
+        UUID uuid = UUID.randomUUID();
+        tasks.addTask(new Todo(uuid, "buy milk"));
         tasks.addTask(new Deadline(
+                uuid,
                 "submit report",
                 LocalDateTime.of(2026, 8, 30, 18, 0)
         ));
@@ -100,10 +127,12 @@ public class StorageTest {
         storage.writeTasks(tasks);
 
         assertEquals(
-                """
-                T | 0 | buy milk
-                D | 0 | submit report | 2026-08-30T18:00
-                """,
+                String.format(
+                        """
+                        %s | T | 0 | buy milk
+                        %s | D | 0 | submit report | 2026-08-30T18:00
+                        """, uuid, uuid
+                ),
                 Files.readString(filePath)
         );
     }
@@ -112,19 +141,23 @@ public class StorageTest {
     public void appendTask_existingContent_preservesExistingContent() throws Exception {
         Path filePath = tempDir.resolve("tasks.txt");
         Storage storage = new Storage(filePath);
-        storage.appendTask(new Todo("buy milk"));
+        UUID uuid = UUID.randomUUID();
+        storage.appendTask(new Todo(uuid, "buy milk"));
 
         storage.appendTask(new Event(
+                uuid,
                 "team meeting",
                 LocalDateTime.of(2026, 8, 31, 10, 0),
                 LocalDateTime.of(2026, 8, 31, 11, 0)
         ));
 
         assertEquals(
-                """
-                T | 0 | buy milk
-                E | 0 | team meeting | 2026-08-31T10:00 | 2026-08-31T11:00
-                """,
+                String.format(
+                        """
+                        %s | T | 0 | buy milk
+                        %s | E | 0 | team meeting | 2026-08-31T10:00 | 2026-08-31T11:00
+                        """, uuid, uuid
+                ),
                 Files.readString(filePath)
         );
     }

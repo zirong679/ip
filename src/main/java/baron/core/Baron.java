@@ -2,7 +2,6 @@ package baron.core;
 
 import java.nio.file.Path;
 
-import baron.core.exception.BaronException;
 import baron.core.task.TaskList;
 
 /**
@@ -19,11 +18,7 @@ public class Baron {
     public Baron(Path path) {
         Storage storage = new Storage(path);
         TaskList tasks = new TaskList();
-        try {
-            storage.readTasks(tasks);
-        } catch (BaronException e) {
-            System.out.println(e.getMessage());
-        }
+        storage.readTasks(tasks);
         parser = new Parser(storage, tasks);
     }
 

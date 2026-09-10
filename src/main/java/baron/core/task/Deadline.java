@@ -2,6 +2,7 @@ package baron.core.task;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 /**
  * Represents a task that must be completed by a specified time.
@@ -16,7 +17,18 @@ public class Deadline extends Task {
      * @param deadline The time by which the task must be completed.
      */
     public Deadline(String description, LocalDateTime deadline) {
-        super(TaskType.DEADLINE, description);
+        this(UUID.randomUUID(), description, deadline);
+    }
+
+    /**
+     * Creates a deadline task with the specified identifier, description, and deadline.
+     *
+     * @param uuid The task identifier.
+     * @param description The task description.
+     * @param deadline The time by which the task must be completed.
+     */
+    public Deadline(UUID uuid, String description, LocalDateTime deadline) {
+        super(uuid, TaskType.DEADLINE, description);
         assert deadline != null : "Deadline tasks must have a deadline";
         this.deadline = deadline;
     }

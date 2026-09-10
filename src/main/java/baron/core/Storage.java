@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.UUID;
 
 import baron.core.exception.BaronException;
 import baron.core.task.Deadline;
@@ -23,12 +24,13 @@ class Storage {
     private static final String FIELD_SEPARATOR = " \\| ";
     private static final String COMPLETED_TASK_STATUS = "1";
 
-    private static final int TASK_TYPE_FIELD_INDEX = 0;
-    private static final int TASK_STATUS_FIELD_INDEX = 1;
-    private static final int TASK_DESCRIPTION_FIELD_INDEX = 2;
-    private static final int DEADLINE_FIELD_INDEX = 3;
-    private static final int EVENT_START_FIELD_INDEX = 3;
-    private static final int EVENT_END_FIELD_INDEX = 4;
+    private static final int TASK_UUID_FIELD_INDEX = 0;
+    private static final int TASK_TYPE_FIELD_INDEX = 1;
+    private static final int TASK_STATUS_FIELD_INDEX = 2;
+    private static final int TASK_DESCRIPTION_FIELD_INDEX = 3;
+    private static final int DEADLINE_FIELD_INDEX = 4;
+    private static final int EVENT_START_FIELD_INDEX = 4;
+    private static final int EVENT_END_FIELD_INDEX = 5;
 
     private final Path filePath;
 
@@ -53,9 +55,8 @@ class Storage {
      * Reads saved tasks and adds them to the given task list.
      *
      * @param tasks The task list to populate.
-     * @throws BaronException If a saved task has an invalid format.
      */
-    public void readTasks(TaskList tasks) throws BaronException {
+    public void readTasks(TaskList tasks) {
         String taskStrings;
         try {
             taskStrings = Files.readString(filePath, StandardCharsets.UTF_8);
@@ -65,10 +66,16 @@ class Storage {
         }
 
         for (String taskString : taskStrings.split("\\R")) {
-            Task task = parseTaskString(taskString);
-            if (task != null) {
-                tasks.addTask(task);
+            Task task = null;
+            try {
+                task = parseTaskString(taskString);
+            } catch (BaronException e) {
+                System.out.println(e.getMessage());
             }
+            if (task == null) {
+                continue;
+            }
+            tasks.addTask(task);
         }
     }
 
@@ -119,12 +126,17 @@ class Storage {
         try {
             TaskType taskType = TaskType.fromFileCode(taskFields[TASK_TYPE_FIELD_INDEX]);
             Task task = switch (taskType) {
-                case TODO -> new Todo(taskFields[TASK_DESCRIPTION_FIELD_INDEX]);
+                case TODO -> new Todo(
+                        UUID.fromString(taskFields[TASK_UUID_FIELD_INDEX]),
+                        taskFields[TASK_DESCRIPTION_FIELD_INDEX]
+                );
                 case DEADLINE -> new Deadline(
+                        UUID.fromString(taskFields[TASK_UUID_FIELD_INDEX]),
                         taskFields[TASK_DESCRIPTION_FIELD_INDEX],
                         LocalDateTime.parse(taskFields[DEADLINE_FIELD_INDEX])
                 );
                 case EVENT -> new Event(
+                        UUID.fromString(taskFields[TASK_UUID_FIELD_INDEX]),
                         taskFields[TASK_DESCRIPTION_FIELD_INDEX],
                         LocalDateTime.parse(taskFields[EVENT_START_FIELD_INDEX]),
                         LocalDateTime.parse(taskFields[EVENT_END_FIELD_INDEX])
