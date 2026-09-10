@@ -56,11 +56,12 @@ class Storage {
      * @throws BaronException If a saved task has an invalid format.
      */
     public void readTasks(TaskList tasks) throws BaronException {
-        String taskStrings = "";
+        String taskStrings;
         try {
             taskStrings = Files.readString(filePath, StandardCharsets.UTF_8);
         } catch (IOException e) {
             System.out.println(e.getMessage());
+            return;
         }
 
         for (String taskString : taskStrings.split("\\R")) {
