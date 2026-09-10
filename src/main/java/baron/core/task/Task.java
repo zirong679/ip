@@ -3,17 +3,21 @@ package baron.core.task;
 /**
  * Represents a task that can be marked as completed.
  */
-public class Task {
+public abstract class Task {
+    private final TaskType taskType;
     private final String description;
     private boolean isDone;
 
     /**
-     * Creates a task with the specified description.
+     * Creates a task with the specified type and description.
      *
+     * @param taskType The kind of task.
      * @param description The task description.
      */
-    public Task(String description) {
+    protected Task(TaskType taskType, String description) {
+        assert taskType != null : "Tasks must have a task type";
         assert description != null : "Task descriptions must not be null";
+        this.taskType = taskType;
         this.description = description;
         isDone = false;
     }
@@ -64,7 +68,7 @@ public class Task {
      */
     @Override
     public String toString() {
-        return "[" + getStatusIcon() + "] " + description;
+        return taskType.getDisplayPrefix() + "[" + getStatusIcon() + "] " + description;
     }
 
     /**
@@ -73,6 +77,6 @@ public class Task {
      * @return The persistent representation of this task.
      */
     public String toFileString() {
-        return (isDone ? "1" : "0") + " | " + description;
+        return taskType.getFileCode() + " | " + (isDone ? "1" : "0") + " | " + description;
     }
 }

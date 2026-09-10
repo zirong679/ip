@@ -38,30 +38,34 @@ class Parser {
     public String parse(String command) {
         assert command != null : "Commands passed from the user interface must not be null";
         try {
-            if (command.equals("bye")) {
-                return Response.respondWithOutro();
-            } else if (command.equals("list")) {
-                return handleList();
-            } else if (command.matches("^mark(\\s+.*)?$")) {
-                return handleMark(command);
-            } else if (command.matches("^unmark(\\s+.*)?$")) {
-                return handleUnmark(command);
-            } else if (command.matches("^todo(\\s+.*)?$")) {
-                return handleTodo(command);
-            } else if (command.matches("^deadline(\\s+.*)?$")) {
-                return handleDeadline(command);
-            } else if (command.matches("^event(\\s+.*)?$")) {
-                return handleEvent(command);
-            } else if (command.matches("^delete(\\s+.*)?$")) {
-                return handleDelete(command);
-            } else if (command.matches("^find(\\s+.*)?$")) {
-                return handleFind(command);
-            } else {
-                throw new BaronException("Unknown command");
-            }
+            return routeCommand(command);
         } catch (BaronException e) {
             return Response.respondWithBaronException(e);
         }
+    }
+
+    /** Routes the specified command to the handler responsible for it. */
+    private String routeCommand(String command) throws BaronException {
+        if (command.equals("bye")) {
+            return Response.respondWithOutro();
+        } else if (command.equals("list")) {
+            return handleList();
+        } else if (command.matches("^mark(\\s+.*)?$")) {
+            return handleMark(command);
+        } else if (command.matches("^unmark(\\s+.*)?$")) {
+            return handleUnmark(command);
+        } else if (command.matches("^todo(\\s+.*)?$")) {
+            return handleTodo(command);
+        } else if (command.matches("^deadline(\\s+.*)?$")) {
+            return handleDeadline(command);
+        } else if (command.matches("^event(\\s+.*)?$")) {
+            return handleEvent(command);
+        } else if (command.matches("^delete(\\s+.*)?$")) {
+            return handleDelete(command);
+        } else if (command.matches("^find(\\s+.*)?$")) {
+            return handleFind(command);
+        }
+        throw new BaronException("Unknown command");
     }
 
     /** Returns the response for a list command. */
@@ -144,17 +148,14 @@ class Parser {
 
     /** Returns the non-blank argument that follows the specified command flag. */
     private String getArgument(String flag, String command) throws BaronException {
-        StringBuilder builder = new StringBuilder();
-        if (!command.contains(flag)) {
+        int argumentStartIndex = command.indexOf(flag);
+        if (argumentStartIndex == -1) {
             throw new BaronException("Argument for " + flag.trim() + " is missing");
         }
-        for (int i = command.indexOf(flag) + flag.length(); i < command.length(); i++) {
-            if (command.charAt(i) == '/') {
-                break;
-            }
-            builder.append(command.charAt(i));
-        }
-        String argument = builder.toString().trim();
+        argumentStartIndex += flag.length();
+        int nextFlagIndex = command.indexOf('/', argumentStartIndex);
+        int argumentEndIndex = nextFlagIndex == -1 ? command.length() : nextFlagIndex;
+        String argument = command.substring(argumentStartIndex, argumentEndIndex).trim();
         if (argument.isEmpty()) {
             throw new BaronException("Argument for " + flag.trim() + " is missing");
         }

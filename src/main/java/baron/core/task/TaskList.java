@@ -33,8 +33,7 @@ public class TaskList {
      */
     public Task markTask(int taskIndex) {
         assert isValidIndex(taskIndex) : "Task operations require an index for an existing task";
-        Task task = tasks.get(taskIndex);
-        return task.markAsDone();
+        return getTask(taskIndex).markAsDone();
     }
 
     /**
@@ -45,8 +44,7 @@ public class TaskList {
      */
     public Task unmarkTask(int taskIndex) {
         assert isValidIndex(taskIndex) : "Task operations require an index for an existing task";
-        Task task = tasks.get(taskIndex);
-        return task.markAsNotDone();
+        return getTask(taskIndex).markAsNotDone();
     }
 
     /**
@@ -69,9 +67,12 @@ public class TaskList {
      */
     public Task deleteTask(int taskIndex) {
         assert isValidIndex(taskIndex) : "Task operations require an index for an existing task";
-        Task task = tasks.get(taskIndex);
-        tasks.remove(taskIndex);
-        return task;
+        return tasks.remove(taskIndex);
+    }
+
+    /** Returns the task at the specified zero-based index. */
+    private Task getTask(int taskIndex) {
+        return tasks.get(taskIndex);
     }
 
     /**

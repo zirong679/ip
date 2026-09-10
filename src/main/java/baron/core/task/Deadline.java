@@ -16,7 +16,7 @@ public class Deadline extends Task {
      * @param deadline The time by which the task must be completed.
      */
     public Deadline(String description, LocalDateTime deadline) {
-        super(description);
+        super(TaskType.DEADLINE, description);
         assert deadline != null : "Deadline tasks must have a deadline";
         this.deadline = deadline;
     }
@@ -24,11 +24,11 @@ public class Deadline extends Task {
     @Override
     public String toString() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a, d MMM yyyy");
-        return "[D]" + super.toString() + " (by: " + deadline.format(formatter) + ")";
+        return super.toString() + " (by: " + deadline.format(formatter) + ")";
     }
 
     @Override
     public String toFileString() {
-        return "D | " + super.toFileString() + " | " + deadline;
+        return super.toFileString() + " | " + deadline;
     }
 }
