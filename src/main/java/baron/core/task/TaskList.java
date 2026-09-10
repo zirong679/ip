@@ -2,6 +2,8 @@ package baron.core.task;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Manages the ordered collection of tasks in Baron.
@@ -14,6 +16,15 @@ public class TaskList {
      */
     public TaskList() {
         tasks = new ArrayList<>();
+    }
+
+    /**
+     * Creates a task list containing the supplied tasks.
+     *
+     * @param tasks The tasks to copy into this list.
+     */
+    private TaskList(List<Task> tasks) {
+        this.tasks = new ArrayList<>(tasks);
     }
 
     /**
@@ -77,13 +88,9 @@ public class TaskList {
      * @return A task list of matching tasks, in their original order.
      */
     public TaskList findTasks(String keyword) {
-        TaskList matchingTasks = new TaskList();
-        for (Task task : tasks) {
-            if (task.hasKeyword(keyword)) {
-                matchingTasks.addTask(task);
-            }
-        }
-        return matchingTasks;
+        return new TaskList(tasks.stream()
+                .filter(task -> task.hasKeyword(keyword))
+                .toList());
     }
 
     /**
@@ -92,11 +99,9 @@ public class TaskList {
      * @return The persistent representation of this list.
      */
     public String toFileString() {
-        StringBuilder builder = new StringBuilder();
-        for (Task task : tasks) {
-            builder.append(task.toFileString()).append(System.lineSeparator());
-        }
-        return builder.toString();
+        return tasks.stream()
+                .map(task -> task.toFileString() + System.lineSeparator())
+                .collect(Collectors.joining());
     }
 
     /**
@@ -106,10 +111,8 @@ public class TaskList {
      */
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < tasks.size(); i++) {
-            builder.append((i + 1)).append(".").append(tasks.get(i)).append("\n");
-        }
-        return builder.toString();
+        return IntStream.range(0, tasks.size())
+                .mapToObj(index -> (index + 1) + "." + tasks.get(index) + "\n")
+                .collect(Collectors.joining());
     }
 }
