@@ -32,8 +32,7 @@ public class TaskList {
      * @return The marked task.
      */
     public Task markTask(int taskIndex) {
-        Task task = tasks.get(taskIndex);
-        return task.markAsDone();
+        return getTask(taskIndex).markAsDone();
     }
 
     /**
@@ -43,8 +42,7 @@ public class TaskList {
      * @return The unmarked task.
      */
     public Task unmarkTask(int taskIndex) {
-        Task task = tasks.get(taskIndex);
-        return task.markAsNotDone();
+        return getTask(taskIndex).markAsNotDone();
     }
 
     /**
@@ -65,9 +63,14 @@ public class TaskList {
      * @return The removed task.
      */
     public Task deleteTask(int taskIndex) {
-        Task task = tasks.get(taskIndex);
+        Task task = getTask(taskIndex);
         tasks.remove(taskIndex);
         return task;
+    }
+
+    /** Returns the task at the specified zero-based index. */
+    private Task getTask(int taskIndex) {
+        return tasks.get(taskIndex);
     }
 
     /**
