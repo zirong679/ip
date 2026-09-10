@@ -19,6 +19,8 @@ public class Event extends Task {
      */
     public Event(String description, LocalDateTime fromDate, LocalDateTime toDate) {
         super(description);
+        assert fromDate != null && toDate != null : "Event tasks must have start and end times";
+        assert fromDate.isBefore(toDate) : "An event's start time must be before its end time";
         this.fromDate = fromDate;
         this.toDate = toDate;
     }

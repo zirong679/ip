@@ -43,6 +43,7 @@ public class TaskList {
      * @return The marked task.
      */
     public Task markTask(int taskIndex) {
+        assert isValidIndex(taskIndex) : "Task operations require an index for an existing task";
         Task task = tasks.get(taskIndex);
         return task.markAsDone();
     }
@@ -54,6 +55,7 @@ public class TaskList {
      * @return The unmarked task.
      */
     public Task unmarkTask(int taskIndex) {
+        assert isValidIndex(taskIndex) : "Task operations require an index for an existing task";
         Task task = tasks.get(taskIndex);
         return task.markAsNotDone();
     }
@@ -65,6 +67,7 @@ public class TaskList {
      * @return The added task.
      */
     public Task addTask(Task task) {
+        assert task != null : "A task list must not contain null tasks";
         tasks.add(task);
         return task;
     }
@@ -76,6 +79,7 @@ public class TaskList {
      * @return The removed task.
      */
     public Task deleteTask(int taskIndex) {
+        assert isValidIndex(taskIndex) : "Task operations require an index for an existing task";
         Task task = tasks.get(taskIndex);
         tasks.remove(taskIndex);
         return task;
@@ -88,6 +92,7 @@ public class TaskList {
      * @return A task list of matching tasks, in their original order.
      */
     public TaskList findTasks(String keyword) {
+        assert keyword != null : "Task searches require a keyword";
         return new TaskList(tasks.stream()
                 .filter(task -> task.hasKeyword(keyword))
                 .toList());
@@ -102,6 +107,11 @@ public class TaskList {
         return tasks.stream()
                 .map(task -> task.toFileString() + System.lineSeparator())
                 .collect(Collectors.joining());
+    }
+
+    /** Returns whether the specified index refers to a task currently in this list. */
+    private boolean isValidIndex(int taskIndex) {
+        return taskIndex >= 0 && taskIndex < tasks.size();
     }
 
     /**
