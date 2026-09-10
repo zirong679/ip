@@ -13,6 +13,7 @@ import baron.core.task.Deadline;
 import baron.core.task.Event;
 import baron.core.task.Task;
 import baron.core.task.TaskList;
+import baron.core.task.TaskType;
 import baron.core.task.Todo;
 
 /**
@@ -20,9 +21,6 @@ import baron.core.task.Todo;
  */
 class Storage {
     private static final String FIELD_SEPARATOR = " \\| ";
-    private static final String TODO_TASK_TYPE = "T";
-    private static final String DEADLINE_TASK_TYPE = "D";
-    private static final String EVENT_TASK_TYPE = "E";
     private static final String COMPLETED_TASK_STATUS = "1";
 
     private static final int TASK_TYPE_FIELD_INDEX = 0;
@@ -118,13 +116,14 @@ class Storage {
         }
         String[] taskFields = taskString.split(FIELD_SEPARATOR);
         try {
-            Task task = switch (taskFields[TASK_TYPE_FIELD_INDEX]) {
-                case TODO_TASK_TYPE -> new Todo(taskFields[TASK_DESCRIPTION_FIELD_INDEX]);
-                case DEADLINE_TASK_TYPE -> new Deadline(
+            TaskType taskType = TaskType.fromFileCode(taskFields[TASK_TYPE_FIELD_INDEX]);
+            Task task = switch (taskType) {
+                case TODO -> new Todo(taskFields[TASK_DESCRIPTION_FIELD_INDEX]);
+                case DEADLINE -> new Deadline(
                         taskFields[TASK_DESCRIPTION_FIELD_INDEX],
                         LocalDateTime.parse(taskFields[DEADLINE_FIELD_INDEX])
                 );
-                case EVENT_TASK_TYPE -> new Event(
+                case EVENT -> new Event(
                         taskFields[TASK_DESCRIPTION_FIELD_INDEX],
                         LocalDateTime.parse(taskFields[EVENT_START_FIELD_INDEX]),
                         LocalDateTime.parse(taskFields[EVENT_END_FIELD_INDEX])
@@ -135,7 +134,8 @@ class Storage {
                 task.markAsDone();
             }
             return task;
-        } catch (ArrayIndexOutOfBoundsException | DateTimeParseException | BaronException e) {
+        } catch (ArrayIndexOutOfBoundsException | DateTimeParseException
+                | IllegalArgumentException | BaronException e) {
             throw new BaronException("Invalid task '" + taskString + "'");
         }
     }

@@ -16,7 +16,7 @@ public class Deadline extends Task {
      * @param deadline The time by which the task must be completed.
      */
     public Deadline(String description, LocalDateTime deadline) {
-        super(description);
+        super(TaskType.DEADLINE, description);
         this.deadline = deadline;
     }
 
@@ -28,6 +28,6 @@ public class Deadline extends Task {
 
     @Override
     public String toFileString() {
-        return "D | " + super.toFileString() + " | " + deadline;
+        return super.toFileString() + " | " + deadline;
     }
 }

@@ -18,7 +18,7 @@ public class Event extends Task {
      * @param toDate The event end time.
      */
     public Event(String description, LocalDateTime fromDate, LocalDateTime toDate) {
-        super(description);
+        super(TaskType.EVENT, description);
         this.fromDate = fromDate;
         this.toDate = toDate;
     }
@@ -33,6 +33,6 @@ public class Event extends Task {
 
     @Override
     public String toFileString() {
-        return "E | " + super.toFileString() + " | " + fromDate + " | " + toDate;
+        return super.toFileString() + " | " + fromDate + " | " + toDate;
     }
 }
