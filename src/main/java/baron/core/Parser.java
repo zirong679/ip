@@ -37,30 +37,34 @@ class Parser {
      */
     public String parse(String command) {
         try {
-            if (command.equals("bye")) {
-                return Response.respondWithOutro();
-            } else if (command.equals("list")) {
-                return handleList();
-            } else if (command.matches("^mark(\\s+.*)?$")) {
-                return handleMark(command);
-            } else if (command.matches("^unmark(\\s+.*)?$")) {
-                return handleUnmark(command);
-            } else if (command.matches("^todo(\\s+.*)?$")) {
-                return handleTodo(command);
-            } else if (command.matches("^deadline(\\s+.*)?$")) {
-                return handleDeadline(command);
-            } else if (command.matches("^event(\\s+.*)?$")) {
-                return handleEvent(command);
-            } else if (command.matches("^delete(\\s+.*)?$")) {
-                return handleDelete(command);
-            } else if (command.matches("^find(\\s+.*)?$")) {
-                return handleFind(command);
-            } else {
-                throw new BaronException("Unknown command");
-            }
+            return routeCommand(command);
         } catch (BaronException e) {
             return Response.respondWithBaronException(e);
         }
+    }
+
+    /** Routes the specified command to the handler responsible for it. */
+    private String routeCommand(String command) throws BaronException {
+        if (command.equals("bye")) {
+            return Response.respondWithOutro();
+        } else if (command.equals("list")) {
+            return handleList();
+        } else if (command.matches("^mark(\\s+.*)?$")) {
+            return handleMark(command);
+        } else if (command.matches("^unmark(\\s+.*)?$")) {
+            return handleUnmark(command);
+        } else if (command.matches("^todo(\\s+.*)?$")) {
+            return handleTodo(command);
+        } else if (command.matches("^deadline(\\s+.*)?$")) {
+            return handleDeadline(command);
+        } else if (command.matches("^event(\\s+.*)?$")) {
+            return handleEvent(command);
+        } else if (command.matches("^delete(\\s+.*)?$")) {
+            return handleDelete(command);
+        } else if (command.matches("^find(\\s+.*)?$")) {
+            return handleFind(command);
+        }
+        throw new BaronException("Unknown command");
     }
 
     /** Returns the response for a list command. */
