@@ -19,6 +19,19 @@ import baron.core.task.Todo;
  * Reads and writes Baron tasks in a text file.
  */
 class Storage {
+    private static final String FIELD_SEPARATOR = " \\| ";
+    private static final String TODO_TASK_TYPE = "T";
+    private static final String DEADLINE_TASK_TYPE = "D";
+    private static final String EVENT_TASK_TYPE = "E";
+    private static final String COMPLETED_TASK_STATUS = "1";
+
+    private static final int TASK_TYPE_FIELD_INDEX = 0;
+    private static final int TASK_STATUS_FIELD_INDEX = 1;
+    private static final int TASK_DESCRIPTION_FIELD_INDEX = 2;
+    private static final int DEADLINE_FIELD_INDEX = 3;
+    private static final int EVENT_START_FIELD_INDEX = 3;
+    private static final int EVENT_END_FIELD_INDEX = 4;
+
     private final Path filePath;
 
     /**
@@ -103,19 +116,22 @@ class Storage {
         if (taskString.isBlank()) {
             return null;
         }
-        String[] taskFields = taskString.split(" \\| ");
+        String[] taskFields = taskString.split(FIELD_SEPARATOR);
         try {
-            Task task = switch (taskFields[0]) {
-                case "T" -> new Todo(taskFields[2]);
-                case "D" -> new Deadline(taskFields[2], LocalDateTime.parse(taskFields[3]));
-                case "E" -> new Event(
-                        taskFields[2],
-                        LocalDateTime.parse(taskFields[3]),
-                        LocalDateTime.parse(taskFields[4])
+            Task task = switch (taskFields[TASK_TYPE_FIELD_INDEX]) {
+                case TODO_TASK_TYPE -> new Todo(taskFields[TASK_DESCRIPTION_FIELD_INDEX]);
+                case DEADLINE_TASK_TYPE -> new Deadline(
+                        taskFields[TASK_DESCRIPTION_FIELD_INDEX],
+                        LocalDateTime.parse(taskFields[DEADLINE_FIELD_INDEX])
+                );
+                case EVENT_TASK_TYPE -> new Event(
+                        taskFields[TASK_DESCRIPTION_FIELD_INDEX],
+                        LocalDateTime.parse(taskFields[EVENT_START_FIELD_INDEX]),
+                        LocalDateTime.parse(taskFields[EVENT_END_FIELD_INDEX])
                 );
                 default -> throw new BaronException("Unknown task");
             };
-            if (taskFields[1].equals("1")) {
+            if (taskFields[TASK_STATUS_FIELD_INDEX].equals(COMPLETED_TASK_STATUS)) {
                 task.markAsDone();
             }
             return task;
