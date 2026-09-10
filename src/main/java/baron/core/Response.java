@@ -76,9 +76,7 @@ class Response {
      */
     public static String respondWithAddedTask(Task task, TaskList tasks) {
         String message = "Got it. I've added this task:";
-        String numTasks = "Now you have " + tasks.size() + " tasks in the list";
-        List<String> lines = List.of(message, task.toString(), numTasks);
-        return String.join("\n", lines);
+        return respondWithTaskAndTaskCount(message, task, tasks);
     }
 
     /**
@@ -90,6 +88,18 @@ class Response {
      */
     public static String respondWithDeletedTask(Task task, TaskList tasks) {
         String message = "Noted. I've removed this task:";
+        return respondWithTaskAndTaskCount(message, task, tasks);
+    }
+
+    /**
+     * Returns a message containing a task and the current number of tasks.
+     *
+     * @param message The opening message.
+     * @param task The task to display.
+     * @param tasks The updated task list.
+     * @return The formatted task and task-count message.
+     */
+    private static String respondWithTaskAndTaskCount(String message, Task task, TaskList tasks) {
         String numTasks = "Now you have " + tasks.size() + " tasks in the list";
         List<String> lines = List.of(message, task.toString(), numTasks);
         return String.join("\n", lines);
