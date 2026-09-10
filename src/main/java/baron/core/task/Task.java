@@ -15,6 +15,7 @@ public abstract class Task {
      * @param description The task description.
      */
     protected Task(TaskType taskType, String description) {
+        assert description != null : "Task descriptions must not be null";
         this.taskType = taskType;
         this.description = description;
         isDone = false;

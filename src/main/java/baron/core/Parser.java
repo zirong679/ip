@@ -36,6 +36,7 @@ class Parser {
      * @return The response to show to the user.
      */
     public String parse(String command) {
+        assert command != null : "Commands passed from the user interface must not be null";
         try {
             return routeCommand(command);
         } catch (BaronException e) {
@@ -78,6 +79,8 @@ class Parser {
     /** Processes a mark command. */
     private String handleMark(String command) throws BaronException {
         int taskIndex = parseTaskNumber(getArgument("mark ", command)) - 1;
+        assert taskIndex >= 0 && taskIndex < tasks.size()
+                : "A validated task number must produce an existing zero-based index";
         Task markedTask = tasks.markTask(taskIndex);
         storage.writeTasks(tasks);
         return Response.respondWithMarkedTask(markedTask);
@@ -86,6 +89,8 @@ class Parser {
     /** Processes an unmark command. */
     private String handleUnmark(String command) throws BaronException {
         int taskIndex = parseTaskNumber(getArgument("unmark ", command)) - 1;
+        assert taskIndex >= 0 && taskIndex < tasks.size()
+                : "A validated task number must produce an existing zero-based index";
         Task unmarkedTask = tasks.unmarkTask(taskIndex);
         storage.writeTasks(tasks);
         return Response.respondWithUnmarkedTask(unmarkedTask);
@@ -124,6 +129,8 @@ class Parser {
     /** Processes a delete command. */
     private String handleDelete(String command) throws BaronException {
         int taskIndex = parseTaskNumber(getArgument("delete ", command)) - 1;
+        assert taskIndex >= 0 && taskIndex < tasks.size()
+                : "A validated task number must produce an existing zero-based index";
         Task deletedTask = tasks.deleteTask(taskIndex);
         storage.writeTasks(tasks);
         return Response.respondWithDeletedTask(deletedTask, tasks);
