@@ -1,27 +1,35 @@
 package baron.core.task;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-public class DeadlineTest {
-    @Test
-    public void constructor_uuidProvided_constructedWithProvidedUuid() {
-        UUID uuid = UUID.randomUUID();
-        Deadline deadline = new Deadline(uuid, "task",
-                LocalDateTime.of(2026, 1, 1, 12, 00));
-        assertTrue(deadline.toFileString().contains(uuid.toString()));
-    }
+/**
+ * Tests for {@link Deadline}.
+ */
+class DeadlineTest {
 
+    /**
+     * Verifies the persistent and user-facing representations of a deadline task.
+     */
     @Test
-    public void constructor_uuidNotProvided_constructedWithRandomUuid() {
-        Deadline deadline = new Deadline("task",
-                LocalDateTime.of(2026, 1, 1, 12, 00));
-        String uuidString = deadline.toFileString().split(" \\| ")[0];
-        assertDoesNotThrow(() -> UUID.fromString(uuidString));
+    void formatting_deadlineProvided_expectedFormatsReturned() {
+        Deadline deadline = new Deadline(
+                UUID.fromString("00000000-0000-0000-0000-000000000001"),
+                "submit report",
+                LocalDateTime.of(2026, 8, 30, 18, 0));
+
+        assertEquals(
+                "00000000-0000-0000-0000-000000000001 | D | 0 | submit report | "
+                        + " | 2026-08-30T18:00",
+                deadline.toFileString());
+        assertEquals(
+                """
+                [D][ ] submit report
+                by: 06:00 PM, 30 Aug 2026""",
+                deadline.toString());
     }
 }

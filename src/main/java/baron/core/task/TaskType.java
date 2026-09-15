@@ -24,15 +24,6 @@ public enum TaskType {
     }
 
     /**
-     * Returns the prefix used when displaying this task kind to the user.
-     *
-     * @return The user-facing task-kind prefix.
-     */
-    public String getDisplayPrefix() {
-        return "[" + fileCode + "]";
-    }
-
-    /**
      * Returns the task kind represented by the specified persistent code.
      *
      * @param fileCode The code read from the task file.

@@ -38,16 +38,26 @@ public class Event extends Task {
         this.toDate = toDate;
     }
 
+    /**
+     * Returns this event task in the persistent storage format.
+     *
+     * @return The persistent event-task representation.
+     */
+    @Override
+    public String toFileString() {
+        return String.join(" | ", super.toFileString(), fromDate.toString(), toDate.toString());
+    }
+
+    /**
+     * Returns a user-facing representation of this event task.
+     *
+     * @return The formatted event task.
+     */
     @Override
     public String toString() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a, d MMM yyyy");
         return super.toString()
-                + " (from: " + fromDate.format(formatter)
-                + " to: " + toDate.format(formatter) + ")";
-    }
-
-    @Override
-    public String toFileString() {
-        return super.toFileString() + " | " + fromDate + " | " + toDate;
+                + String.format("\nfrom: %s", fromDate.format(formatter))
+                + String.format("\nto: %s", toDate.format(formatter));
     }
 }

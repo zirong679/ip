@@ -8,6 +8,8 @@ import baron.core.task.TaskList;
  * Coordinates Baron command processing and persistent task storage.
  */
 public class Baron {
+    /** Shared list containing every task managed by Baron. */
+    public static final TaskList TASKS = new TaskList();
     private final Parser parser;
 
     /**
@@ -17,9 +19,8 @@ public class Baron {
      */
     public Baron(Path path) {
         Storage storage = new Storage(path);
-        TaskList tasks = new TaskList();
-        storage.readTasks(tasks);
-        parser = new Parser(storage, tasks);
+        storage.readTasks();
+        parser = new Parser(storage);
     }
 
     /**

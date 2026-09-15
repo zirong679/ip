@@ -33,14 +33,24 @@ public class Deadline extends Task {
         this.deadline = deadline;
     }
 
+    /**
+     * Returns this deadline task in the persistent storage format.
+     *
+     * @return The persistent deadline-task representation.
+     */
+    @Override
+    public String toFileString() {
+        return String.join(" | ", super.toFileString(), deadline.toString());
+    }
+
+    /**
+     * Returns a user-facing representation of this deadline task.
+     *
+     * @return The formatted deadline task.
+     */
     @Override
     public String toString() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a, d MMM yyyy");
-        return super.toString() + " (by: " + deadline.format(formatter) + ")";
-    }
-
-    @Override
-    public String toFileString() {
-        return super.toFileString() + " | " + deadline;
+        return super.toString() + String.format("\nby: %s", deadline.format(formatter));
     }
 }

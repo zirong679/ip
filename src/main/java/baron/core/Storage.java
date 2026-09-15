@@ -4,9 +4,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import baron.core.exception.BaronException;
@@ -22,15 +24,17 @@ import baron.core.task.Todo;
  */
 class Storage {
     private static final String FIELD_SEPARATOR = " \\| ";
+    private static final String TASK_UUID_SEPARATOR = ", ";
     private static final String COMPLETED_TASK_STATUS = "1";
 
     private static final int TASK_UUID_FIELD_INDEX = 0;
     private static final int TASK_TYPE_FIELD_INDEX = 1;
     private static final int TASK_STATUS_FIELD_INDEX = 2;
     private static final int TASK_DESCRIPTION_FIELD_INDEX = 3;
-    private static final int DEADLINE_FIELD_INDEX = 4;
-    private static final int EVENT_START_FIELD_INDEX = 4;
-    private static final int EVENT_END_FIELD_INDEX = 5;
+    private static final int REQUIRED_TASKS_FIELD_INDEX = 4;
+    private static final int DEADLINE_FIELD_INDEX = 5;
+    private static final int EVENT_START_FIELD_INDEX = 5;
+    private static final int EVENT_END_FIELD_INDEX = 6;
 
     private final Path filePath;
 
@@ -52,11 +56,9 @@ class Storage {
     }
 
     /**
-     * Reads saved tasks and adds them to the given task list.
-     *
-     * @param tasks The task list to populate.
+     * Reads saved tasks and adds them to Baron's list of tasks.
      */
-    public void readTasks(TaskList tasks) {
+    public void readTasks() {
         String taskStrings;
         try {
             taskStrings = Files.readString(filePath, StandardCharsets.UTF_8);
@@ -65,47 +67,34 @@ class Storage {
             return;
         }
 
-        for (String taskString : taskStrings.split("\\R")) {
-            Task task = null;
+        Map<UUID, Task> uuidToTask = new HashMap<>();
+        for (String taskString : taskStrings.split(System.lineSeparator())) {
+            if (taskString.isBlank()) {
+                continue;
+            }
             try {
-                task = parseTaskString(taskString);
+                Task task = parseTaskString(taskString);
+                uuidToTask.put(task.getUuid(), task);
+                Baron.TASKS.addTask(task);
             } catch (BaronException e) {
                 System.out.println(e.getMessage());
             }
-            if (task == null) {
+        }
+
+        for (String taskString : taskStrings.split(System.lineSeparator())) {
+            if (taskString.isBlank()) {
                 continue;
             }
-            tasks.addTask(task);
+            establishRequirements(taskString, uuidToTask);
         }
     }
 
     /**
-     * Replaces the saved tasks with the contents of the given task list.
-     *
-     * @param tasks The task list to save.
+     * Replaces the saved tasks with the current contents of Baron's task list.
      */
-    public void writeTasks(TaskList tasks) {
+    public void writeTasks() {
         try {
-            Files.writeString(filePath, tasks.toFileString(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-        }
-    }
-
-    /**
-     * Adds one task to the end of the saved task file.
-     *
-     * @param task The task to save.
-     */
-    public void appendTask(Task task) {
-        try {
-            Files.writeString(
-                    filePath,
-                    task.toFileString() + System.lineSeparator(),
-                    StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.APPEND
-            );
+            Files.writeString(filePath, Baron.TASKS.toFileString(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             System.out.println(e.getMessage());
         }
@@ -119,35 +108,51 @@ class Storage {
      * @throws BaronException If the record has an invalid format.
      */
     private Task parseTaskString(String taskString) throws BaronException {
-        if (taskString.isBlank()) {
-            return null;
-        }
-        String[] taskFields = taskString.split(FIELD_SEPARATOR);
+        String[] taskFields = taskString.split(FIELD_SEPARATOR, -1);
         try {
             TaskType taskType = TaskType.fromFileCode(taskFields[TASK_TYPE_FIELD_INDEX]);
             Task task = switch (taskType) {
-                case TODO -> new Todo(
-                        UUID.fromString(taskFields[TASK_UUID_FIELD_INDEX]),
-                        taskFields[TASK_DESCRIPTION_FIELD_INDEX]
-                );
-                case DEADLINE -> new Deadline(
-                        UUID.fromString(taskFields[TASK_UUID_FIELD_INDEX]),
+                case TODO -> new Todo(UUID.fromString(taskFields[TASK_UUID_FIELD_INDEX]),
+                        taskFields[TASK_DESCRIPTION_FIELD_INDEX]);
+                case DEADLINE -> new Deadline(UUID.fromString(taskFields[TASK_UUID_FIELD_INDEX]),
                         taskFields[TASK_DESCRIPTION_FIELD_INDEX],
-                        LocalDateTime.parse(taskFields[DEADLINE_FIELD_INDEX])
-                );
+                        LocalDateTime.parse(taskFields[DEADLINE_FIELD_INDEX]));
                 case EVENT -> new Event(
                         UUID.fromString(taskFields[TASK_UUID_FIELD_INDEX]),
                         taskFields[TASK_DESCRIPTION_FIELD_INDEX],
                         LocalDateTime.parse(taskFields[EVENT_START_FIELD_INDEX]),
-                        LocalDateTime.parse(taskFields[EVENT_END_FIELD_INDEX])
-                );
+                        LocalDateTime.parse(taskFields[EVENT_END_FIELD_INDEX]));
             };
             if (taskFields[TASK_STATUS_FIELD_INDEX].equals(COMPLETED_TASK_STATUS)) {
                 task.markAsDone();
             }
             return task;
-        } catch (ArrayIndexOutOfBoundsException | DateTimeParseException | IllegalArgumentException e) {
+        } catch (ArrayIndexOutOfBoundsException
+                | DateTimeParseException
+                | IllegalArgumentException e) {
             throw new BaronException("Invalid task '" + taskString + "'");
+        }
+    }
+
+    /**
+     * Restores the prerequisite relationships in a saved task record.
+     *
+     * @param taskString The saved task record.
+     * @param uuidToTask The tasks indexed by their identifiers.
+     */
+    private void establishRequirements(String taskString, Map<UUID, Task> uuidToTask) {
+        try {
+            String[] taskFields = taskString.split(FIELD_SEPARATOR, -1);
+            Task task = uuidToTask.get(UUID.fromString(taskFields[TASK_UUID_FIELD_INDEX]));
+            if (task == null || taskFields[REQUIRED_TASKS_FIELD_INDEX].isBlank()) {
+                return;
+            }
+            TaskList requiredTasks = new TaskList(
+                    Arrays.stream(taskFields[REQUIRED_TASKS_FIELD_INDEX].split(TASK_UUID_SEPARATOR))
+                            .map(uuid -> uuidToTask.get(UUID.fromString(uuid))).toList());
+            task.setRequiredTasks(requiredTasks);
+        } catch (ArrayIndexOutOfBoundsException | IllegalArgumentException | BaronException e) {
+            System.out.println(e.getMessage());
         }
     }
 }

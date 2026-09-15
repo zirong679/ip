@@ -3,11 +3,11 @@ package baron.core;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
@@ -18,33 +18,38 @@ import org.junit.jupiter.api.io.TempDir;
 import baron.core.exception.BaronException;
 import baron.core.task.Deadline;
 import baron.core.task.Event;
+import baron.core.task.Task;
 import baron.core.task.TaskList;
 import baron.core.task.Todo;
 
 /**
- * Tests persistent task-file operations performed by {@link Storage}.
+ * Tests for {@link Storage}.
  */
-public class StorageTest {
+class StorageTest {
     @TempDir
     private Path tempDir;
 
-    private ByteArrayOutputStream output;
-    private PrintStream originalOut;
-
+    /**
+     * Clears the shared application task list before every test.
+     */
     @BeforeEach
     void setUp() {
-        originalOut = System.out;
-        output = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(output));
+        clearTasks();
     }
 
+    /**
+     * Clears tasks added while running a test.
+     */
     @AfterEach
     void tearDown() {
-        System.setOut(originalOut);
+        clearTasks();
     }
 
+    /**
+     * Verifies that storage creates a missing task file and its parent directories.
+     */
     @Test
-    public void constructor_missingParentDirectories_createsTaskFile() {
+    void constructor_nestedMissingPath_taskFileCreated() {
         Path filePath = tempDir.resolve("data").resolve("tasks.txt");
 
         new Storage(filePath);
@@ -52,113 +57,113 @@ public class StorageTest {
         assertTrue(Files.isRegularFile(filePath));
     }
 
+    /**
+     * Verifies that saving replaces existing file contents with the current task list.
+     */
     @Test
-    public void readTasks_emptyFile_doesNotAddTasks() throws BaronException {
+    void writeTasks_tasksPresent_taskListSerializedToFile() throws IOException {
         Path filePath = tempDir.resolve("tasks.txt");
         Storage storage = new Storage(filePath);
-        TaskList tasks = new TaskList();
+        Baron.TASKS.addTask(new Todo(
+                UUID.fromString("00000000-0000-0000-0000-000000000001"),
+                "buy milk"));
+        Baron.TASKS.addTask(new Todo(
+                UUID.fromString("00000000-0000-0000-0000-000000000002"),
+                "read notes"));
 
-        storage.readTasks(tasks);
+        storage.writeTasks();
 
-        assertEquals(0, tasks.size());
-    }
-
-    @Test
-    public void readTasks_validTasks_addsTasksToTaskList() throws Exception {
-        Path filePath = tempDir.resolve("tasks.txt");
-        UUID uuid = UUID.randomUUID();
-        Files.writeString(filePath, String.format(
+        assertEquals(
                 """
-                %s | T | 0 | buy milk
-                %s | D | 1 | submit report | 2026-08-30T18:00
-                %s | E | 0 | team meeting | 2026-08-31T10:00 | 2026-08-31T11:00
-                """, uuid, uuid, uuid
-        ));
-        Storage storage = new Storage(filePath);
-        TaskList tasks = new TaskList();
-
-        storage.readTasks(tasks);
-
-        assertEquals(3, tasks.size());
+                00000000-0000-0000-0000-000000000001 | T | 0 | buy milk |\s
+                00000000-0000-0000-0000-000000000002 | T | 0 | read notes |\s""",
+                Files.readString(filePath));
     }
 
+    /**
+     * Verifies that reading a saved task restores its description and completion state.
+     */
     @Test
-    public void readTasks_blankLines_ignoresBlankLines() throws Exception {
+    void readTasks_savedCompletedTodo_taskRestored() throws IOException {
         Path filePath = tempDir.resolve("tasks.txt");
-        Files.writeString(filePath, "\n" + UUID.randomUUID() + " | T | 0 | buy milk\n\n");
+        Files.writeString(filePath, "00000000-0000-0000-0000-000000000001 | T | 1 | buy milk | ");
         Storage storage = new Storage(filePath);
-        TaskList tasks = new TaskList();
 
-        storage.readTasks(tasks);
+        storage.readTasks();
 
-        assertEquals(1, tasks.size());
+        Task restoredTask = Baron.TASKS.getTasks().getFirst();
+        assertEquals(1, Baron.TASKS.size());
+        assertTrue(restoredTask.isDone());
+        assertEquals("[T][X] buy milk", restoredTask.toString());
     }
 
+    /**
+     * Verifies that all task types and prerequisite relationships survive a storage round trip.
+     */
     @Test
-    public void readTasks_invalidTask_reportsInvalidTask() throws Exception {
-        Path filePath = tempDir.resolve("tasks.txt");
-        UUID uuid = UUID.randomUUID();
-        Files.writeString(filePath, uuid + " | D | 0 | submit report | not-a-date\n");
-        Storage storage = new Storage(filePath);
-        TaskList tasks = new TaskList();
-
-        storage.readTasks(tasks);
-
-        assertEquals(
-                String.format("Invalid task '%s | D | 0 | submit report | not-a-date'\n", uuid),
-                output.toString()
-        );
-    }
-
-    @Test
-    public void writeTasks_existingContent_overwritesExistingContent() throws Exception {
-        Path filePath = tempDir.resolve("tasks.txt");
-        Files.writeString(filePath, "old contents");
-        Storage storage = new Storage(filePath);
-        TaskList tasks = new TaskList();
-        UUID uuid = UUID.randomUUID();
-        tasks.addTask(new Todo(uuid, "buy milk"));
-        tasks.addTask(new Deadline(
-                uuid,
-                "submit report",
-                LocalDateTime.of(2026, 8, 30, 18, 0)
-        ));
-
-        storage.writeTasks(tasks);
-
-        assertEquals(
-                String.format(
-                        """
-                        %s | T | 0 | buy milk
-                        %s | D | 0 | submit report | 2026-08-30T18:00
-                        """, uuid, uuid
-                ),
-                Files.readString(filePath)
-        );
-    }
-
-    @Test
-    public void appendTask_existingContent_preservesExistingContent() throws Exception {
+    void readTasks_allTaskKindsAndRelationships_roundTripCorrectly() throws BaronException {
         Path filePath = tempDir.resolve("tasks.txt");
         Storage storage = new Storage(filePath);
-        UUID uuid = UUID.randomUUID();
-        storage.appendTask(new Todo(uuid, "buy milk"));
-
-        storage.appendTask(new Event(
-                uuid,
-                "team meeting",
+        Todo prerequisite = new Todo(
+                UUID.fromString("00000000-0000-0000-0000-000000000001"),
+                "prepare");
+        Deadline deadline = new Deadline(
+                UUID.fromString("00000000-0000-0000-0000-000000000002"),
+                "submit",
+                LocalDateTime.of(2026, 8, 30, 18, 0));
+        Event event = new Event(
+                UUID.fromString("00000000-0000-0000-0000-000000000003"),
+                "meeting",
                 LocalDateTime.of(2026, 8, 31, 10, 0),
-                LocalDateTime.of(2026, 8, 31, 11, 0)
-        ));
+                LocalDateTime.of(2026, 8, 31, 11, 0));
+        deadline.setRequiredTasks(new TaskList(List.of(prerequisite)));
+        Baron.TASKS.addTask(prerequisite);
+        Baron.TASKS.addTask(deadline);
+        Baron.TASKS.addTask(event);
+        storage.writeTasks();
 
+        clearTasks();
+        new Storage(filePath).readTasks();
+
+        assertEquals(3, Baron.TASKS.size());
+        assertEquals("[T][ ] prepare", Baron.TASKS.getTasks().get(0).toString());
         assertEquals(
-                String.format(
-                        """
-                        %s | T | 0 | buy milk
-                        %s | E | 0 | team meeting | 2026-08-31T10:00 | 2026-08-31T11:00
-                        """, uuid, uuid
-                ),
-                Files.readString(filePath)
-        );
+                """
+                [D][ ] submit
+                by: 06:00 PM, 30 Aug 2026""",
+                Baron.TASKS.getTasks().get(1).toString());
+        assertEquals(
+                """
+                [E][ ] meeting
+                from: 10:00 AM, 31 Aug 2026
+                to: 11:00 AM, 31 Aug 2026""",
+                Baron.TASKS.getTasks().get(2).toString());
+        assertTrue(Baron.TASKS.getTasks().get(1)
+                .getNumberedTaskWithRelationship(true, false).contains("requires:"));
+    }
+
+    /**
+     * Verifies that malformed and blank records are ignored without preventing valid records from
+     * loading.
+     */
+    @Test
+    void readTasks_malformedAndBlankRecords_ignoresBadRecords() throws IOException {
+        Path filePath = tempDir.resolve("tasks.txt");
+        Files.writeString(filePath,
+                "\nnot a task\n00000000-0000-0000-0000-000000000001 | T | 0 | valid | \n");
+
+        new Storage(filePath).readTasks();
+
+        assertEquals(1, Baron.TASKS.size());
+        assertTrue(Baron.TASKS.getTasks().getFirst().getNumberedTask().contains("valid"));
+    }
+
+    /**
+     * Removes every task from Baron's shared task list.
+     */
+    private void clearTasks() {
+        for (Task task : Baron.TASKS.getTasks()) {
+            Baron.TASKS.deleteTask(task);
+        }
     }
 }

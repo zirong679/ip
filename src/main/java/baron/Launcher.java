@@ -7,6 +7,12 @@ import javafx.application.Application;
  */
 public class Launcher {
     /**
+     * Prevents instantiation of this utility class.
+     */
+    private Launcher() {
+    }
+
+    /**
      * Launches the Baron JavaFX application.
      *
      * @param args Command-line arguments.

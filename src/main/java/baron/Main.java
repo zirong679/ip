@@ -19,6 +19,12 @@ public class Main extends Application {
     private final Baron baron = new Baron(Path.of("data", "tasks.txt"));
 
     /**
+     * Creates the JavaFX application.
+     */
+    public Main() {
+    }
+
+    /**
      * Creates and displays the primary Baron window.
      *
      * @param stage The primary application stage.
