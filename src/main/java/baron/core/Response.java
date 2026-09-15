@@ -35,9 +35,11 @@ class Response {
      * @param tasks The tasks to display.
      * @return The formatted task-list message.
      */
-    public static String respondWithAllTasks(TaskList tasks) {
+    public static String respondWithAllTasks(
+            TaskList tasks, boolean showRequiredTasks, boolean showUnlockedTasks) {
         String message = "Here are the tasks in your list:";
-        return joinLines(message, tasks.toString());
+        String tasksString = tasks.getNumberedTasksWithRelationship(showRequiredTasks, showUnlockedTasks);
+        return String.join("\n", message, tasksString);
     }
 
     /**
@@ -48,7 +50,8 @@ class Response {
      */
     public static String respondWithMarkedTask(Task task) {
         String message = "Nice! I've marked this task as done:";
-        return joinLines(message, task.toString());
+        String taskString = task.getNumberedTaskWithRelationship(false, false);
+        return String.join("\n", message, taskString);
     }
 
     /**
@@ -59,7 +62,8 @@ class Response {
      */
     public static String respondWithUnmarkedTask(Task task) {
         String message = "OK, I've marked this task as not done yet:";
-        return joinLines(message, task.toString());
+        String taskString = task.getNumberedTaskWithRelationship(false, false);
+        return String.join("\n", message, taskString);
     }
 
     /**
@@ -71,7 +75,9 @@ class Response {
      */
     public static String respondWithAddedTask(Task task, TaskList tasks) {
         String message = "Got it. I've added this task:";
-        return respondWithTaskAndTaskCount(message, task, tasks);
+        String taskString = task.getNumberedTaskWithRelationship(false, false);
+        String numTasks = "Now you have " + tasks.size() + " tasks in the list";
+        return String.join("\n", message, taskString, numTasks);
     }
 
     /**
@@ -83,20 +89,9 @@ class Response {
      */
     public static String respondWithDeletedTask(Task task, TaskList tasks) {
         String message = "Noted. I've removed this task:";
-        return respondWithTaskAndTaskCount(message, task, tasks);
-    }
-
-    /**
-     * Returns a message containing a task and the current number of tasks.
-     *
-     * @param message The opening message.
-     * @param task The task to display.
-     * @param tasks The updated task list.
-     * @return The formatted task and task-count message.
-     */
-    private static String respondWithTaskAndTaskCount(String message, Task task, TaskList tasks) {
+        String taskString = task.getNumberedTaskWithRelationship(false, false);
         String numTasks = "Now you have " + tasks.size() + " tasks in the list";
-        return joinLines(message, task.toString(), numTasks);
+        return String.join("\n", message, taskString, numTasks);
     }
 
     /**
@@ -107,12 +102,20 @@ class Response {
      */
     public static String respondWithMatchingTasks(TaskList tasks) {
         String message = "Here are the matching tasks in your list:";
-        return joinLines(message, tasks.toString());
+        String tasksString = tasks.getNumberedTasksWithRelationship(false, false);
+        return String.join("\n", message, tasksString);
     }
 
-    /** Returns the specified message lines separated by line breaks. */
-    private static String joinLines(String... lines) {
-        return String.join("\n", lines);
+    /**
+     * Returns a message confirming the specified task's relationships.
+     *
+     * @param task The task whose relationships were specified.
+     * @return The confirmation message.
+     */
+    public static String respondWithSpecifiedTask(Task task) {
+        String message = "Noted. I've specified this task:";
+        String taskString = task.getNumberedTaskWithRelationship(true, true);
+        return String.join("\n", message, taskString);
     }
 
     /**

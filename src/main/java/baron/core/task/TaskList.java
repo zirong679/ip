@@ -1,9 +1,11 @@
 package baron.core.task;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+
+import baron.core.exception.BaronException;
 
 /**
  * Manages the ordered collection of tasks in Baron.
@@ -23,8 +25,20 @@ public class TaskList {
      *
      * @param tasks The tasks to copy into this list.
      */
-    private TaskList(List<Task> tasks) {
+    public TaskList(Collection<Task> tasks) {
         this.tasks = new ArrayList<>(tasks);
+    }
+
+    /**
+     * Validates that an index identifies a task in this list.
+     *
+     * @param taskIndex The zero-based task index.
+     * @throws BaronException If the index does not identify a task.
+     */
+    public void checkTaskIndex(int taskIndex) throws BaronException {
+        if (taskIndex < 0 || taskIndex >= tasks.size()) {
+            throw new BaronException("Invalid task index");
+        }
     }
 
     /**
@@ -37,14 +51,25 @@ public class TaskList {
     }
 
     /**
+     * Returns the zero-based position of a task in this list.
+     *
+     * @param task The task to locate.
+     * @return The task index, or {@code -1} if it is absent.
+     */
+    public int indexOf(Task task) {
+        return tasks.indexOf(task);
+    }
+
+    /**
      * Marks the task at the given index as completed.
      *
      * @param taskIndex The zero-based task index.
      * @return The marked task.
+     * @throws BaronException If the index does not identify a task.
      */
-    public Task markTask(int taskIndex) {
-        assert isValidIndex(taskIndex) : "Task operations require an index for an existing task";
-        return getTask(taskIndex).markAsDone();
+    public Task markTask(int taskIndex) throws BaronException {
+        checkTaskIndex(taskIndex);
+        return tasks.get(taskIndex).markAsDone();
     }
 
     /**
@@ -52,22 +77,30 @@ public class TaskList {
      *
      * @param taskIndex The zero-based task index.
      * @return The unmarked task.
+     * @throws BaronException If the index does not identify a task.
      */
-    public Task unmarkTask(int taskIndex) {
-        assert isValidIndex(taskIndex) : "Task operations require an index for an existing task";
-        return getTask(taskIndex).markAsNotDone();
+    public Task unmarkTask(int taskIndex) throws BaronException {
+        checkTaskIndex(taskIndex);
+        return tasks.get(taskIndex).markAsNotDone();
     }
 
     /**
      * Adds a task to the end of this list.
      *
      * @param task The task to add.
-     * @return The added task.
      */
-    public Task addTask(Task task) {
+    public void addTask(Task task) {
         assert task != null : "A task list must not contain null tasks";
         tasks.add(task);
-        return task;
+    }
+
+    /**
+     * Removes the specified task from this list.
+     *
+     * @param task The task to remove.
+     */
+    public void deleteTask(Task task) {
+        tasks.remove(task);
     }
 
     /**
@@ -75,15 +108,13 @@ public class TaskList {
      *
      * @param taskIndex The zero-based task index.
      * @return The removed task.
+     * @throws BaronException If the index does not identify a task.
      */
-    public Task deleteTask(int taskIndex) {
-        assert isValidIndex(taskIndex) : "Task operations require an index for an existing task";
+    public Task deleteTask(int taskIndex) throws BaronException {
+        checkTaskIndex(taskIndex);
+        Task taskToDelete = tasks.get(taskIndex);
+        taskToDelete.clearRelationships();
         return tasks.remove(taskIndex);
-    }
-
-    /** Returns the task at the specified zero-based index. */
-    private Task getTask(int taskIndex) {
-        return tasks.get(taskIndex);
     }
 
     /**
@@ -100,30 +131,81 @@ public class TaskList {
     }
 
     /**
+     * Returns an unmodifiable snapshot of the tasks in this list.
+     *
+     * @return The tasks in this list.
+     */
+    public List<Task> getTasks() {
+        return List.copyOf(tasks);
+    }
+
+    /**
+     * Returns a list containing only completed tasks.
+     *
+     * @return The completed tasks.
+     */
+    protected TaskList getCompletedTasks() {
+        return new TaskList(tasks.stream().filter(Task::isDone).toList());
+    }
+
+    /**
+     * Returns a list containing only incomplete tasks.
+     *
+     * @return The incomplete tasks.
+     */
+    protected TaskList getIncompleteTasks() {
+        return new TaskList(tasks.stream().filter(task -> !task.isDone()).toList());
+    }
+
+    /**
+     * Returns the task UUIDs as a comma-separated string.
+     *
+     * @return The task identifiers.
+     */
+    protected String toUuidString() {
+        return tasks.stream()
+                .map(task -> task.getUuid().toString())
+                .collect(Collectors.joining(", "));
+    }
+
+    /**
      * Returns all tasks in the persistent file format.
      *
      * @return The persistent representation of this list.
      */
     public String toFileString() {
-        return tasks.stream()
-                .map(task -> task.toFileString() + System.lineSeparator())
-                .collect(Collectors.joining());
-    }
-
-    /** Returns whether the specified index refers to a task currently in this list. */
-    private boolean isValidIndex(int taskIndex) {
-        return taskIndex >= 0 && taskIndex < tasks.size();
+        return tasks.stream().map(Task::toFileString).collect(Collectors.joining("\n"));
     }
 
     /**
-     * Returns the tasks as a numbered, user-facing list in insertion order.
+     * Returns every task in this list on a separate line.
      *
-     * @return The numbered task list, with each task on a separate line.
+     * @return The formatted tasks.
      */
     @Override
     public String toString() {
-        return IntStream.range(0, tasks.size())
-                .mapToObj(index -> (index + 1) + "." + tasks.get(index) + "\n")
-                .collect(Collectors.joining());
+        return tasks.stream().map(Task::toString).collect(Collectors.joining("\n"));
+    }
+
+    /**
+     * Returns every task in this list with its current task number.
+     *
+     * @return The numbered tasks.
+     */
+    public String getNumberedTasks() {
+        return tasks.stream().map(Task::getNumberedTask).collect(Collectors.joining("\n"));
+    }
+
+    /**
+     * Returns every task with its number and, optionally, its prerequisite and dependent tasks.
+     *
+     * @param showRequiredTasks Whether to include prerequisite tasks.
+     * @param showUnlockedTasks Whether to include dependent tasks.
+     * @return The numbered tasks and requested relationships.
+     */
+    public String getNumberedTasksWithRelationship(boolean showRequiredTasks, boolean showUnlockedTasks) {
+        return tasks.stream()
+                .map(task -> task.getNumberedTaskWithRelationship(showRequiredTasks, showUnlockedTasks))
+                .collect(Collectors.joining("\n\n"));
     }
 }

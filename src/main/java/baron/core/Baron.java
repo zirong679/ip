@@ -2,13 +2,14 @@ package baron.core;
 
 import java.nio.file.Path;
 
-import baron.core.exception.BaronException;
 import baron.core.task.TaskList;
 
 /**
  * Coordinates Baron command processing and persistent task storage.
  */
 public class Baron {
+    /** Shared list containing every task managed by Baron. */
+    public static final TaskList TASKS = new TaskList();
     private final Parser parser;
 
     /**
@@ -18,13 +19,8 @@ public class Baron {
      */
     public Baron(Path path) {
         Storage storage = new Storage(path);
-        TaskList tasks = new TaskList();
-        try {
-            storage.readTasks(tasks);
-        } catch (BaronException e) {
-            System.out.println(e.getMessage());
-        }
-        parser = new Parser(storage, tasks);
+        storage.readTasks();
+        parser = new Parser(storage);
     }
 
     /**

@@ -30,9 +30,15 @@ public class MainWindow extends AnchorPane {
     private Baron baron;
 
     private final Image userImage = new Image(Objects.requireNonNull(
-            this.getClass().getResourceAsStream("/images/user.jpg")));
+            getClass().getResourceAsStream("/images/user.jpg")));
     private final Image baronImage = new Image(Objects.requireNonNull(
-            this.getClass().getResourceAsStream("/images/baron.jpg")));
+            getClass().getResourceAsStream("/images/baron.jpg")));
+
+    /**
+     * Creates the FXML-controlled main window.
+     */
+    public MainWindow() {
+    }
 
     /** Initializes the main window after its FXML fields have been injected. */
     @FXML
@@ -42,7 +48,7 @@ public class MainWindow extends AnchorPane {
 
     /**
      * Sets the Baron instance that processes user messages.
-     * Adds a dialog box to introduce Baron
+     * Adds a dialog box to introduce Baron.
      *
      * @param baron The Baron instance.
      */
@@ -58,10 +64,8 @@ public class MainWindow extends AnchorPane {
     private void handleUserInput() {
         String input = userInput.getText();
         String response = baron.getResponse(input);
-        dialogContainer.getChildren().addAll(
-                DialogBox.getUserDialog(input, userImage),
-                DialogBox.getBaronDialog(response, baronImage)
-        );
+        dialogContainer.getChildren().addAll(DialogBox.getUserDialog(input, userImage),
+                DialogBox.getBaronDialog(response, baronImage));
         userInput.clear();
         if (input.equals("bye")) {
             userInput.setDisable(true);

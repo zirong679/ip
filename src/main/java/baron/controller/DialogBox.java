@@ -24,7 +24,13 @@ public class DialogBox extends HBox {
     @FXML
     private ImageView displayPicture;
 
-    private DialogBox(String text, Image img) {
+    /**
+     * Creates a dialog box containing the specified text and speaker image.
+     *
+     * @param text The message to display.
+     * @param image The image representing the speaker.
+     */
+    private DialogBox(String text, Image image) {
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(MainWindow.class.getResource("/view/DialogBox.fxml"));
             fxmlLoader.setController(this);
@@ -35,7 +41,7 @@ public class DialogBox extends HBox {
         }
 
         dialog.setText(text);
-        displayPicture.setImage(img);
+        displayPicture.setImage(image);
     }
 
     /**
