@@ -64,10 +64,10 @@ class StorageTest {
     void writeTasks_tasksPresent_taskListSerializedToFile() throws IOException {
         Path filePath = tempDir.resolve("tasks.txt");
         Storage storage = new Storage(filePath);
-        Baron.TASKS.addTask(new Todo(
+        Baron.getTasks().addTask(new Todo(
                 UUID.fromString("00000000-0000-0000-0000-000000000001"),
                 "buy milk"));
-        Baron.TASKS.addTask(new Todo(
+        Baron.getTasks().addTask(new Todo(
                 UUID.fromString("00000000-0000-0000-0000-000000000002"),
                 "read notes"));
 
@@ -91,8 +91,8 @@ class StorageTest {
 
         storage.readTasks();
 
-        Task restoredTask = Baron.TASKS.getTasks().getFirst();
-        assertEquals(1, Baron.TASKS.size());
+        Task restoredTask = Baron.getTasks().getTasks().getFirst();
+        assertEquals(1, Baron.getTasks().size());
         assertTrue(restoredTask.isDone());
         assertEquals("[T][X] buy milk", restoredTask.toString());
     }
@@ -117,28 +117,28 @@ class StorageTest {
                 LocalDateTime.of(2026, 8, 31, 10, 0),
                 LocalDateTime.of(2026, 8, 31, 11, 0));
         deadline.setRequiredTasks(new TaskList(List.of(prerequisite)));
-        Baron.TASKS.addTask(prerequisite);
-        Baron.TASKS.addTask(deadline);
-        Baron.TASKS.addTask(event);
+        Baron.getTasks().addTask(prerequisite);
+        Baron.getTasks().addTask(deadline);
+        Baron.getTasks().addTask(event);
         storage.writeTasks();
 
         clearTasks();
         new Storage(filePath).readTasks();
 
-        assertEquals(3, Baron.TASKS.size());
-        assertEquals("[T][ ] prepare", Baron.TASKS.getTasks().get(0).toString());
+        assertEquals(3, Baron.getTasks().size());
+        assertEquals("[T][ ] prepare", Baron.getTasks().getTasks().get(0).toString());
         assertEquals(
                 """
                 [D][ ] submit
                 by: 06:00 PM, 30 Aug 2026""",
-                Baron.TASKS.getTasks().get(1).toString());
+                Baron.getTasks().getTasks().get(1).toString());
         assertEquals(
                 """
                 [E][ ] meeting
                 from: 10:00 AM, 31 Aug 2026
                 to: 11:00 AM, 31 Aug 2026""",
-                Baron.TASKS.getTasks().get(2).toString());
-        assertTrue(Baron.TASKS.getTasks().get(1)
+                Baron.getTasks().getTasks().get(2).toString());
+        assertTrue(Baron.getTasks().getTasks().get(1)
                 .getNumberedTaskWithRelationship(true, false).contains("requires:"));
     }
 
@@ -154,16 +154,16 @@ class StorageTest {
 
         new Storage(filePath).readTasks();
 
-        assertEquals(1, Baron.TASKS.size());
-        assertTrue(Baron.TASKS.getTasks().getFirst().getNumberedTask().contains("valid"));
+        assertEquals(1, Baron.getTasks().size());
+        assertTrue(Baron.getTasks().getTasks().getFirst().getNumberedTask().contains("valid"));
     }
 
     /**
      * Removes every task from Baron's shared task list.
      */
     private void clearTasks() {
-        for (Task task : Baron.TASKS.getTasks()) {
-            Baron.TASKS.deleteTask(task);
+        for (Task task : Baron.getTasks().getTasks()) {
+            Baron.getTasks().deleteTask(task);
         }
     }
 }

@@ -71,18 +71,18 @@ class Parser {
 
     /** Returns the response for a list command. */
     private String handleList(String command) throws BaronException {
-        if (Baron.TASKS.size() == 0) {
+        if (Baron.getTasks().size() == 0) {
             throw new BaronException("There are no tasks in your list");
         }
         boolean willShowRequiredTasks = command.matches("^.*\\s+/requires(\\s+.*)?$");
         boolean willShowUnlockedTasks = command.matches("^.*\\s+/unlocks(\\s+.*)?$");
-        return Response.respondWithAllTasks(Baron.TASKS, willShowRequiredTasks, willShowUnlockedTasks);
+        return Response.respondWithAllTasks(Baron.getTasks(), willShowRequiredTasks, willShowUnlockedTasks);
     }
 
     /** Processes a mark command. */
     private String handleMark(String command) throws BaronException {
         int taskIndex = parseTaskIndex(getRequiredArgument("mark", command));
-        Task markedTask = Baron.TASKS.markTask(taskIndex);
+        Task markedTask = Baron.getTasks().markTask(taskIndex);
         storage.writeTasks();
         return Response.respondWithMarkedTask(markedTask);
     }
@@ -90,7 +90,7 @@ class Parser {
     /** Processes an unmark command. */
     private String handleUnmark(String command) throws BaronException {
         int taskIndex = parseTaskIndex(getRequiredArgument("unmark", command));
-        Task unmarkedTask = Baron.TASKS.unmarkTask(taskIndex);
+        Task unmarkedTask = Baron.getTasks().unmarkTask(taskIndex);
         storage.writeTasks();
         return Response.respondWithUnmarkedTask(unmarkedTask);
     }
@@ -99,9 +99,9 @@ class Parser {
     private String handleTodo(String command) throws BaronException {
         String description = getRequiredArgument("todo", command);
         Todo task = new Todo(description);
-        Baron.TASKS.addTask(task);
+        Baron.getTasks().addTask(task);
         storage.writeTasks();
-        return Response.respondWithAddedTask(task, Baron.TASKS);
+        return Response.respondWithAddedTask(task, Baron.getTasks());
     }
 
     /** Processes a deadline command. */
@@ -109,9 +109,9 @@ class Parser {
         String description = getRequiredArgument("deadline", command);
         LocalDateTime deadline = parseDateTime(getRequiredArgument("/by", command));
         Deadline task = new Deadline(description, deadline);
-        Baron.TASKS.addTask(task);
+        Baron.getTasks().addTask(task);
         storage.writeTasks();
-        return Response.respondWithAddedTask(task, Baron.TASKS);
+        return Response.respondWithAddedTask(task, Baron.getTasks());
     }
 
     /** Processes an event command. */
@@ -123,23 +123,23 @@ class Parser {
             throw new BaronException("/to date must be after /from date");
         }
         Event task = new Event(description, fromDate, toDate);
-        Baron.TASKS.addTask(task);
+        Baron.getTasks().addTask(task);
         storage.writeTasks();
-        return Response.respondWithAddedTask(task, Baron.TASKS);
+        return Response.respondWithAddedTask(task, Baron.getTasks());
     }
 
     /** Processes a delete command. */
     private String handleDelete(String command) throws BaronException {
         int taskIndex = parseTaskIndex(getRequiredArgument("delete", command));
-        Task deletedTask = Baron.TASKS.deleteTask(taskIndex);
+        Task deletedTask = Baron.getTasks().deleteTask(taskIndex);
         storage.writeTasks();
-        return Response.respondWithDeletedTask(deletedTask, Baron.TASKS);
+        return Response.respondWithDeletedTask(deletedTask, Baron.getTasks());
     }
 
     /** Processes a find command. */
     private String handleFind(String command) throws BaronException {
         String keyword = getRequiredArgument("find", command);
-        TaskList matchingTasks = Baron.TASKS.findTasks(keyword);
+        TaskList matchingTasks = Baron.getTasks().findTasks(keyword);
         if (matchingTasks.size() == 0) {
             throw new BaronException("None of your tasks match '" + keyword + "'");
         }
@@ -149,7 +149,7 @@ class Parser {
     /** Processes a specify command. */
     private String handleSpecify(String command) throws BaronException {
         int taskIndex = parseTaskIndex(getRequiredArgument("specify", command));
-        Task task = Baron.TASKS.getTasks().get(taskIndex);
+        Task task = Baron.getTasks().getTasks().get(taskIndex);
         task.saveRelationships();
         task.clearRelationships();
 
@@ -207,7 +207,7 @@ class Parser {
     private int parseTaskIndex(String taskNumber) throws BaronException {
         try {
             int index = Integer.parseInt(taskNumber) - 1;
-            Baron.TASKS.checkTaskIndex(index);
+            Baron.getTasks().checkTaskIndex(index);
             return index;
         } catch (NumberFormatException e) {
             throw new BaronException("Task number must be an integer");
@@ -230,7 +230,7 @@ class Parser {
 
         TaskList tasks = new TaskList();
         for (int index : setOfIndices) {
-            tasks.addTask(Baron.TASKS.getTasks().get(index));
+            tasks.addTask(Baron.getTasks().getTasks().get(index));
         }
         return tasks;
     }

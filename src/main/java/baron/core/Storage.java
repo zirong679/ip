@@ -75,7 +75,7 @@ class Storage {
             try {
                 Task task = parseTaskString(taskString);
                 uuidToTask.put(task.getUuid(), task);
-                Baron.TASKS.addTask(task);
+                Baron.getTasks().addTask(task);
             } catch (BaronException e) {
                 System.out.println(e.getMessage());
             }
@@ -94,7 +94,7 @@ class Storage {
      */
     public void writeTasks() {
         try {
-            Files.writeString(filePath, Baron.TASKS.toFileString(), StandardCharsets.UTF_8);
+            Files.writeString(filePath, Baron.getTasks().toFileString(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             System.out.println(e.getMessage());
         }

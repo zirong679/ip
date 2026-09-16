@@ -9,7 +9,7 @@ import baron.core.task.TaskList;
  */
 public class Baron {
     /** Shared list containing every task managed by Baron. */
-    public static final TaskList TASKS = new TaskList();
+    private static final TaskList TASKS = new TaskList();
     private final Parser parser;
 
     /**
@@ -21,6 +21,11 @@ public class Baron {
         Storage storage = new Storage(path);
         storage.readTasks();
         parser = new Parser(storage);
+    }
+
+    /** Returns the shared list containing every task managed by Baron. */
+    public static TaskList getTasks() {
+        return TASKS;
     }
 
     /**
