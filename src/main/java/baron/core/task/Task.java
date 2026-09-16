@@ -297,7 +297,7 @@ public abstract class Task {
      * @return The task number, or {@code #?} if this task is not in the list.
      */
     protected String getTaskNumber() {
-        int taskIndex = Baron.TASKS.indexOf(this);
+        int taskIndex = Baron.getTasks().indexOf(this);
         return "#" + (taskIndex == -1 ? "?" : taskIndex + 1);
     }
 
