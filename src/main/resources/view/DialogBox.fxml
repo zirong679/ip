@@ -2,8 +2,10 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.shape.Circle?>
 
 <fx:root alignment="TOP_RIGHT"
          maxHeight="1.7976931348623157E308"
@@ -16,5 +18,10 @@
         <Insets bottom="15.0" left="5.0" right="5.0" top="15.0"/>
     </padding>
     <Label fx:id="dialog" text="Label" wrapText="true" minHeight="-Infinity"/>
-    <ImageView fx:id="displayPicture" fitHeight="99.0" fitWidth="99.0" pickOnBounds="true" preserveRatio="true"/>
+    <StackPane fx:id="pictureContainer" prefHeight="64.0" prefWidth="64.0">
+        <ImageView fx:id="displayPicture" fitHeight="56.0" fitWidth="56.0"
+                   pickOnBounds="true" preserveRatio="true"/>
+        <Circle fx:id="pictureBorder" centerX="32.0" centerY="32.0"
+                fill="TRANSPARENT" radius="29.0" stroke="#5c677d" strokeWidth="2.0"/>
+    </StackPane>
 </fx:root>

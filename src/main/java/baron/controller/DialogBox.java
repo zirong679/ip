@@ -13,12 +13,20 @@ import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
+import javafx.scene.shape.Circle;
 
 /**
  * Represents a dialog box consisting of an ImageView to represent the speaker's face
  * and a label containing text from the speaker.
  */
 public class DialogBox extends HBox {
+    private static final String USER_DIALOG_STYLE = "-fx-background-color: #f4a261;"
+            + " -fx-background-radius: 15;"
+            + " -fx-padding: 8 12 8 12;";
+    private static final String BARON_DIALOG_STYLE = "-fx-background-color: #4a90e2;"
+            + " -fx-background-radius: 15;"
+            + " -fx-padding: 8 12 8 12;";
+
     @FXML
     private Label dialog;
     @FXML
@@ -29,8 +37,9 @@ public class DialogBox extends HBox {
      *
      * @param text The message to display.
      * @param image The image representing the speaker.
+     * @param dialogStyle The style for the speaker's message.
      */
-    private DialogBox(String text, Image image) {
+    private DialogBox(String text, Image image, String dialogStyle) {
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(MainWindow.class.getResource("/view/DialogBox.fxml"));
             fxmlLoader.setController(this);
@@ -41,7 +50,9 @@ public class DialogBox extends HBox {
         }
 
         dialog.setText(text);
+        dialog.setStyle(dialogStyle);
         displayPicture.setImage(image);
+        displayPicture.setClip(new Circle(28.0, 28.0, 28.0));
     }
 
     /**
@@ -62,7 +73,7 @@ public class DialogBox extends HBox {
      * @return The user dialog box.
      */
     public static DialogBox getUserDialog(String text, Image image) {
-        return new DialogBox(text, image);
+        return new DialogBox(text, image, USER_DIALOG_STYLE);
     }
 
     /**
@@ -73,7 +84,7 @@ public class DialogBox extends HBox {
      * @return The Baron dialog box.
      */
     public static DialogBox getBaronDialog(String text, Image image) {
-        DialogBox baronDialog = new DialogBox(text, image);
+        DialogBox baronDialog = new DialogBox(text, image, BARON_DIALOG_STYLE);
         baronDialog.flip();
         return baronDialog;
     }
