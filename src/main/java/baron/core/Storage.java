@@ -112,9 +112,11 @@ class Storage {
         try {
             TaskType taskType = TaskType.fromFileCode(taskFields[TASK_TYPE_FIELD_INDEX]);
             Task task = switch (taskType) {
-                case TODO -> new Todo(UUID.fromString(taskFields[TASK_UUID_FIELD_INDEX]),
+                case TODO -> new Todo(
+                        UUID.fromString(taskFields[TASK_UUID_FIELD_INDEX]),
                         taskFields[TASK_DESCRIPTION_FIELD_INDEX]);
-                case DEADLINE -> new Deadline(UUID.fromString(taskFields[TASK_UUID_FIELD_INDEX]),
+                case DEADLINE -> new Deadline(
+                        UUID.fromString(taskFields[TASK_UUID_FIELD_INDEX]),
                         taskFields[TASK_DESCRIPTION_FIELD_INDEX],
                         LocalDateTime.parse(taskFields[DEADLINE_FIELD_INDEX]));
                 case EVENT -> new Event(
