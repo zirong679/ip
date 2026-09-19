@@ -29,10 +29,12 @@ public class MainWindow extends AnchorPane {
 
     private Baron baron;
 
-    private final Image userImage = new Image(Objects.requireNonNull(
-            getClass().getResourceAsStream("/images/user.jpg")));
-    private final Image baronImage = new Image(Objects.requireNonNull(
-            getClass().getResourceAsStream("/images/baron.jpg")));
+    private final Image userImage = new Image(
+            Objects.requireNonNull(
+                    getClass().getResourceAsStream("/images/user.jpg")));
+    private final Image baronImage = new Image(
+            Objects.requireNonNull(
+                    getClass().getResourceAsStream("/images/baron.jpg")));
 
     /**
      * Creates the FXML-controlled main window.
@@ -64,7 +66,8 @@ public class MainWindow extends AnchorPane {
     private void handleUserInput() {
         String input = userInput.getText();
         String response = baron.getResponse(input);
-        dialogContainer.getChildren().addAll(DialogBox.getUserDialog(input, userImage),
+        dialogContainer.getChildren().addAll(
+                DialogBox.getUserDialog(input, userImage),
                 DialogBox.getBaronDialog(response, baronImage));
         userInput.clear();
         if (input.equals("bye")) {

@@ -27,6 +27,7 @@
             prefWidth="76.0"
             text="Send"/>
     <ScrollPane fx:id="scrollPane"
+                fitToWidth="true"
                 hbarPolicy="NEVER"
                 hvalue="1.0"
                 prefHeight="557.0"
