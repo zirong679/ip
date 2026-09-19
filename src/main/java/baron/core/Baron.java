@@ -2,6 +2,7 @@ package baron.core;
 
 import java.nio.file.Path;
 
+import baron.core.task.Task;
 import baron.core.task.TaskList;
 
 /**
@@ -26,6 +27,15 @@ public class Baron {
     /** Returns the shared list containing every task managed by Baron. */
     public static TaskList getTasks() {
         return TASKS;
+    }
+
+    /**
+     * Clears every task currently held in memory.
+     */
+    public static void clearTasks() {
+        for (Task task : TASKS.getTasks()) {
+            TASKS.deleteTask(task);
+        }
     }
 
     /**

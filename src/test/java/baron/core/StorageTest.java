@@ -61,7 +61,7 @@ class StorageTest {
      * Verifies that saving replaces existing file contents with the current task list.
      */
     @Test
-    void writeTasks_tasksPresent_taskListSerializedToFile() throws IOException {
+    void writeTasks_tasksPresent_taskListSerializedToFile() throws IOException, BaronException {
         Path filePath = tempDir.resolve("tasks.txt");
         Storage storage = new Storage(filePath);
         Baron.getTasks().addTask(new Todo(

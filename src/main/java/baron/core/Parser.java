@@ -83,7 +83,12 @@ class Parser {
     private String handleMark(String command) throws BaronException {
         int taskIndex = parseTaskIndex(getRequiredArgument("mark", command));
         Task markedTask = Baron.getTasks().markTask(taskIndex);
-        storage.writeTasks();
+        try {
+            storage.writeTasks();
+        } catch (BaronException baronException) {
+            storage.reloadTasks();
+            throw baronException;
+        }
         return Response.respondWithMarkedTask(markedTask);
     }
 
@@ -91,7 +96,12 @@ class Parser {
     private String handleUnmark(String command) throws BaronException {
         int taskIndex = parseTaskIndex(getRequiredArgument("unmark", command));
         Task unmarkedTask = Baron.getTasks().unmarkTask(taskIndex);
-        storage.writeTasks();
+        try {
+            storage.writeTasks();
+        } catch (BaronException baronException) {
+            storage.reloadTasks();
+            throw baronException;
+        }
         return Response.respondWithUnmarkedTask(unmarkedTask);
     }
 
@@ -100,7 +110,12 @@ class Parser {
         String description = getRequiredArgument("todo", command);
         Todo task = new Todo(description);
         Baron.getTasks().addTask(task);
-        storage.writeTasks();
+        try {
+            storage.writeTasks();
+        } catch (BaronException baronException) {
+            storage.reloadTasks();
+            throw baronException;
+        }
         return Response.respondWithAddedTask(task, Baron.getTasks());
     }
 
@@ -110,7 +125,12 @@ class Parser {
         LocalDateTime deadline = parseDateTime(getRequiredArgument("/by", command));
         Deadline task = new Deadline(description, deadline);
         Baron.getTasks().addTask(task);
-        storage.writeTasks();
+        try {
+            storage.writeTasks();
+        } catch (BaronException baronException) {
+            storage.reloadTasks();
+            throw baronException;
+        }
         return Response.respondWithAddedTask(task, Baron.getTasks());
     }
 
@@ -124,7 +144,12 @@ class Parser {
         }
         Event task = new Event(description, fromDate, toDate);
         Baron.getTasks().addTask(task);
-        storage.writeTasks();
+        try {
+            storage.writeTasks();
+        } catch (BaronException baronException) {
+            storage.reloadTasks();
+            throw baronException;
+        }
         return Response.respondWithAddedTask(task, Baron.getTasks());
     }
 
@@ -132,7 +157,12 @@ class Parser {
     private String handleDelete(String command) throws BaronException {
         int taskIndex = parseTaskIndex(getRequiredArgument("delete", command));
         Task deletedTask = Baron.getTasks().deleteTask(taskIndex);
-        storage.writeTasks();
+        try {
+            storage.writeTasks();
+        } catch (BaronException baronException) {
+            storage.reloadTasks();
+            throw baronException;
+        }
         return Response.respondWithDeletedTask(deletedTask, Baron.getTasks());
     }
 
@@ -172,7 +202,12 @@ class Parser {
             throw baronException;
         }
 
-        storage.writeTasks();
+        try {
+            storage.writeTasks();
+        } catch (BaronException baronException) {
+            storage.reloadTasks();
+            throw baronException;
+        }
         return Response.respondWithSpecifiedTask(task);
     }
 

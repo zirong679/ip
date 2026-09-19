@@ -3,7 +3,9 @@ package baron.core;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
@@ -59,6 +61,7 @@ class Storage {
      * Reads saved tasks and adds them to Baron's list of tasks.
      */
     public void readTasks() {
+        Baron.clearTasks();
         String taskStrings;
         try {
             taskStrings = Files.readString(filePath, StandardCharsets.UTF_8);
@@ -90,13 +93,60 @@ class Storage {
     }
 
     /**
+     * Reloads the last successfully persisted task state.
+     */
+    public void reloadTasks() {
+        readTasks();
+    }
+
+    /**
      * Replaces the saved tasks with the current contents of Baron's task list.
      */
-    public void writeTasks() {
+    public void writeTasks() throws BaronException {
+        Path temporaryFile = null;
         try {
-            Files.writeString(filePath, Baron.getTasks().toFileString(), StandardCharsets.UTF_8);
+            Path parent = filePath.getParent() == null ? Path.of(".") : filePath.getParent();
+            temporaryFile = Files.createTempFile(parent, filePath.getFileName().toString(), ".tmp");
+            Files.writeString(temporaryFile, Baron.getTasks().toFileString(), StandardCharsets.UTF_8);
+            moveTemporaryFile(temporaryFile);
         } catch (IOException e) {
-            System.out.println(e.getMessage());
+            throw new BaronException("Could not save tasks. Please check that the task file is writable.");
+        } finally {
+            deleteTemporaryFile(temporaryFile);
+        }
+    }
+
+    /**
+     * Replaces the task file with a successfully written temporary file.
+     *
+     * @param temporaryFile The temporary file containing the new task state.
+     * @throws IOException If the file cannot be moved.
+     */
+    private void moveTemporaryFile(Path temporaryFile) throws IOException {
+        try {
+            Files.move(
+                    temporaryFile,
+                    filePath,
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(temporaryFile, filePath, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    /**
+     * Deletes the temporary file after a save attempt.
+     *
+     * @param temporaryFile The temporary file to delete, if it was created.
+     */
+    private void deleteTemporaryFile(Path temporaryFile) {
+        if (temporaryFile == null) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(temporaryFile);
+        } catch (IOException e) {
+            // Cleanup failure must not hide the original save result.
         }
     }
 

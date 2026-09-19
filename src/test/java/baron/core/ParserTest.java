@@ -60,6 +60,21 @@ class ParserTest {
     }
 
     /**
+     * Verifies that a task is removed from memory when saving the command fails.
+     */
+    @Test
+    void parse_saveFailure_taskRestoredFromLastPersistedState() throws IOException {
+        Path directoryInsteadOfFile = tempDir.resolve("tasks");
+        Files.createDirectory(directoryInsteadOfFile);
+        parser = new Parser(new Storage(directoryInsteadOfFile));
+
+        String response = parser.parse("todo buy milk");
+
+        assertEquals("Could not save tasks. Please check that the task file is writable.", response);
+        assertEquals(0, Baron.getTasks().size());
+    }
+
+    /**
      * Verifies that valid deadline and event commands create and persist the correct task types.
      */
     @Test
