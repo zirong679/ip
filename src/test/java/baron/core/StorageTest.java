@@ -149,7 +149,8 @@ class StorageTest {
     @Test
     void readTasks_malformedAndBlankRecords_ignoresBadRecords() throws IOException {
         Path filePath = tempDir.resolve("tasks.txt");
-        Files.writeString(filePath,
+        Files.writeString(
+                filePath,
                 "\nnot a task\n00000000-0000-0000-0000-000000000001 | T | 0 | valid | \n");
 
         new Storage(filePath).readTasks();
