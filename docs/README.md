@@ -34,8 +34,6 @@ These rules apply to every command:
 
 ## Features
 
----
-
 ### Add a task without a date or time
 
 #### Command
@@ -408,8 +406,6 @@ reports that saved data could not be restored, keep a copy of the file before
 editing or replacing it. Baron skips records it cannot read and warns you when
 it starts.
 
----
-
 ## Troubleshooting
 
 | Problem | What to do |
@@ -419,8 +415,6 @@ it starts.
 | A date/time format error | Use eight date digits, a space, then four time digits: `ddMMyyyy HHmm`. |
 | Baron cannot save tasks | Check that the `data` folder and `tasks.txt` are writable, then restart Baron. |
 | The app does not start | Confirm that Java 25 is installed and run `java -jar "baron.jar"` from the folder containing the JAR. |
-
----
 
 ## Command summary
 
