@@ -33,12 +33,14 @@ class Response {
      * Returns a message containing all tasks in the specified list.
      *
      * @param tasks The tasks to display.
+     * @param showRequiredTasks Whether to include prerequisite tasks.
+     * @param showUnlockedTasks Whether to include dependent tasks.
      * @return The formatted task-list message.
      */
     public static String respondWithAllTasks(
             TaskList tasks, boolean showRequiredTasks, boolean showUnlockedTasks) {
         String message = "Here are the tasks in your list:";
-        String tasksString = tasks.getNumberedTasksWithRelationship(showRequiredTasks, showUnlockedTasks);
+        String tasksString = tasks.getNumberedTasks(tasks, showRequiredTasks, showUnlockedTasks);
         return String.join("\n", message, tasksString);
     }
 
@@ -46,11 +48,12 @@ class Response {
      * Returns a message confirming that the specified task is complete.
      *
      * @param task The task that was marked complete.
+     * @param tasks The task list containing the marked task.
      * @return The confirmation message.
      */
-    public static String respondWithMarkedTask(Task task) {
+    public static String respondWithMarkedTask(Task task, TaskList tasks) {
         String message = "Nice! I've marked this task as done:";
-        String taskString = task.getNumberedTaskWithRelationship(false, false);
+        String taskString = task.getNumberedTask(tasks, false, false);
         return String.join("\n", message, taskString);
     }
 
@@ -58,11 +61,12 @@ class Response {
      * Returns a message confirming that the specified task is not complete.
      *
      * @param task The task that was marked incomplete.
+     * @param tasks The task list containing the unmarked task.
      * @return The confirmation message.
      */
-    public static String respondWithUnmarkedTask(Task task) {
+    public static String respondWithUnmarkedTask(Task task, TaskList tasks) {
         String message = "OK, I've marked this task as not done yet:";
-        String taskString = task.getNumberedTaskWithRelationship(false, false);
+        String taskString = task.getNumberedTask(tasks, false, false);
         return String.join("\n", message, taskString);
     }
 
@@ -75,7 +79,7 @@ class Response {
      */
     public static String respondWithAddedTask(Task task, TaskList tasks) {
         String message = "Got it. I've added this task:";
-        String taskString = task.getNumberedTaskWithRelationship(false, false);
+        String taskString = task.getNumberedTask(tasks, false, false);
         String numTasks = "Now you have " + tasks.size() + " tasks in the list";
         return String.join("\n", message, taskString, numTasks);
     }
@@ -89,7 +93,7 @@ class Response {
      */
     public static String respondWithDeletedTask(Task task, TaskList tasks) {
         String message = "Noted. I've removed this task:";
-        String taskString = task.getNumberedTaskWithRelationship(false, false);
+        String taskString = task.getNumberedTask(tasks, false, false);
         String numTasks = "Now you have " + tasks.size() + " tasks in the list";
         return String.join("\n", message, taskString, numTasks);
     }
@@ -102,7 +106,7 @@ class Response {
      */
     public static String respondWithMatchingTasks(TaskList tasks) {
         String message = "Here are the matching tasks in your list:";
-        String tasksString = tasks.getNumberedTasksWithRelationship(false, false);
+        String tasksString = tasks.getNumberedTasks(tasks, false, false);
         return String.join("\n", message, tasksString);
     }
 
@@ -110,11 +114,12 @@ class Response {
      * Returns a message confirming the specified task's relationships.
      *
      * @param task The task whose relationships were specified.
+     * @param tasks The task list containing the specified task.
      * @return The confirmation message.
      */
-    public static String respondWithSpecifiedTask(Task task) {
+    public static String respondWithSpecifiedTask(Task task, TaskList tasks) {
         String message = "Noted. I've specified this task:";
-        String taskString = task.getNumberedTaskWithRelationship(true, true);
+        String taskString = task.getNumberedTask(tasks, true, true);
         return String.join("\n", message, taskString);
     }
 

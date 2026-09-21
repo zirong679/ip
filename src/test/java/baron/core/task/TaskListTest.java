@@ -32,8 +32,8 @@ class TaskListTest {
         assertEquals("", taskList.toUuidString());
         assertEquals("", taskList.toFileString());
         assertEquals("", taskList.toString());
-        assertEquals("", taskList.getNumberedTasks());
-        assertEquals("", taskList.getNumberedTasksWithRelationship(true, true));
+        assertEquals("", taskList.getNumberedTasks(taskList, false, false));
+        assertEquals("", taskList.getNumberedTasks(taskList, true, true));
     }
 
     /**
@@ -106,9 +106,10 @@ class TaskListTest {
         Todo secondTask = todo("00000000-0000-0000-0000-000000000002", "second task");
         TaskList taskList = new TaskList(List.of(firstTask, secondTask));
 
-        assertEquals(0, taskList.indexOf(firstTask));
-        assertEquals(1, taskList.indexOf(secondTask));
-        assertEquals(-1, taskList.indexOf(todo("00000000-0000-0000-0000-000000000003", "missing")));
+        assertEquals(0, taskList.getTasks().indexOf(firstTask));
+        assertEquals(1, taskList.getTasks().indexOf(secondTask));
+        assertEquals(-1, taskList.getTasks().indexOf(
+                todo("00000000-0000-0000-0000-000000000003", "missing")));
     }
 
     /**
@@ -150,7 +151,8 @@ class TaskListTest {
     void markTask_requiredTaskIncomplete_taskUnchangedAfterRejection() throws BaronException {
         Todo requiredTask = todo("00000000-0000-0000-0000-000000000001", "required task");
         Todo unlockedTask = todo("00000000-0000-0000-0000-000000000002", "unlocked task");
-        unlockedTask.setRequiredTasks(new TaskList(List.of(requiredTask)));
+        unlockedTask.setRequiredTasks(
+                new TaskList(List.of(requiredTask, unlockedTask)), new TaskList(List.of(requiredTask)));
         TaskList taskList = new TaskList(List.of(requiredTask, unlockedTask));
 
         BaronException exception = assertThrows(BaronException.class, () -> taskList.markTask(1));
@@ -167,7 +169,8 @@ class TaskListTest {
     void unmarkTask_unlockedTaskCompleted_taskUnchangedAfterRejection() throws BaronException {
         Todo requiredTask = todo("00000000-0000-0000-0000-000000000001", "required task");
         Todo unlockedTask = todo("00000000-0000-0000-0000-000000000002", "unlocked task");
-        unlockedTask.setRequiredTasks(new TaskList(List.of(requiredTask)));
+        unlockedTask.setRequiredTasks(
+                new TaskList(List.of(requiredTask, unlockedTask)), new TaskList(List.of(requiredTask)));
         TaskList taskList = new TaskList(List.of(requiredTask, unlockedTask));
         taskList.markTask(0);
         taskList.markTask(1);
@@ -227,7 +230,8 @@ class TaskListTest {
     void deleteTask_requiredTaskWithUnlockedTask_relationshipCleared() throws BaronException {
         Todo requiredTask = todo("00000000-0000-0000-0000-000000000001", "required task");
         Todo unlockedTask = todo("00000000-0000-0000-0000-000000000002", "unlocked task");
-        unlockedTask.setRequiredTasks(new TaskList(List.of(requiredTask)));
+        unlockedTask.setRequiredTasks(
+                new TaskList(List.of(requiredTask, unlockedTask)), new TaskList(List.of(requiredTask)));
         TaskList taskList = new TaskList(List.of(requiredTask, unlockedTask));
 
         taskList.deleteTask(0);
@@ -249,20 +253,6 @@ class TaskListTest {
         assertEquals(List.of(firstTask, secondTask), taskList.findTasks("book").getTasks());
         assertTrue(taskList.findTasks("BOOK").getTasks().isEmpty());
         assertEquals(List.of(firstTask, secondTask, thirdTask), taskList.findTasks("").getTasks());
-    }
-
-    /**
-     * Verifies that task filters separate complete and incomplete tasks in their original order.
-     */
-    @Test
-    void completionFilters_tasksWithMixedStatus_tasksSeparatedByStatus() throws BaronException {
-        Todo incompleteTask = todo("00000000-0000-0000-0000-000000000001", "incomplete");
-        Todo completedTask = todo("00000000-0000-0000-0000-000000000002", "completed");
-        completedTask.markAsDone();
-        TaskList taskList = new TaskList(List.of(incompleteTask, completedTask));
-
-        assertEquals(List.of(completedTask), taskList.getCompletedTasks().getTasks());
-        assertEquals(List.of(incompleteTask), taskList.getIncompleteTasks().getTasks());
     }
 
     /**

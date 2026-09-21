@@ -54,9 +54,13 @@ class Storage {
      * @param filePath The path to the task data file.
      */
     public Storage(Path filePath) {
+        Objects.requireNonNull(filePath, "The task file path must not be null");
         this.filePath = filePath;
         try {
-            Files.createDirectories(filePath.getParent());
+            Path parent = filePath.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
             if (Files.notExists(filePath)) {
                 Files.createFile(filePath);
             }
@@ -68,77 +72,19 @@ class Storage {
     /**
      * Reads saved tasks and adds them to Baron's list of tasks.
      */
-    public void readTasks() {
-        String taskStrings;
+    public TaskList readTasks() {
+        String taskStrings = "";
         try {
             taskStrings = Files.readString(filePath, StandardCharsets.UTF_8);
         } catch (IOException e) {
             LOGGER.warning("Could not read the task file: " + e.getMessage());
-            return;
         }
-        loadTasks(taskStrings);
-    }
-
-    /**
-     * Returns an in-memory snapshot of the current task state.
-     *
-     * @return The serialized task state.
-     */
-    public String snapshotTasks() {
-        return Baron.getTasks().toFileString();
-    }
-
-    /**
-     * Restores tasks from an in-memory snapshot without reading from disk.
-     *
-     * @param snapshot The serialized task state to restore.
-     */
-    public void restoreTasks(String snapshot) {
-        loadTasks(snapshot);
-    }
-
-    /**
-     * Executes a task mutation and saves it, restoring the previous state if either operation
-     * fails.
-     *
-     * @param operation The task mutation to execute.
-     * @param <T> The mutation result type.
-     * @return The result produced by the mutation.
-     * @throws BaronException If the mutation or save operation fails.
-     */
-    public <T> T executeAndSave(TaskOperation<T> operation) throws BaronException {
-        String snapshot = snapshotTasks();
-        try {
-            T result = operation.execute();
-            writeTasks();
-            return result;
-        } catch (BaronException exception) {
-            restoreTasks(snapshot);
-            throw exception;
-        }
-    }
-
-    /**
-     * Replaces the saved tasks with the current contents of Baron's task list.
-     */
-    public void writeTasks() throws BaronException {
-        Path temporaryFile = null;
-        try {
-            Path parent = filePath.getParent() == null ? Path.of(".") : filePath.getParent();
-            temporaryFile = Files.createTempFile(parent, filePath.getFileName().toString(), ".tmp");
-            Files.writeString(temporaryFile, Baron.getTasks().toFileString(), StandardCharsets.UTF_8);
-            moveTemporaryFile(temporaryFile);
-        } catch (IOException e) {
-            throw new BaronException("Could not save tasks. Please check that the task file is writable.");
-        } finally {
-            deleteTemporaryFile(temporaryFile);
-        }
+        return loadTasks(taskStrings);
     }
 
     /** Loads tasks from the supplied serialized task contents. */
-    private void loadTasks(String taskStrings) {
-        Baron.clearTasks();
-
+    public TaskList loadTasks(String taskStrings) {
+        TaskList tasks = new TaskList();
         Map<UUID, Task> uuidToTask = new HashMap<>();
         for (String taskString : taskStrings.split(System.lineSeparator())) {
             if (taskString.isBlank()) {
@@ -147,7 +93,7 @@ class Storage {
             try {
                 Task task = parseTaskString(taskString);
                 uuidToTask.put(task.getUuid(), task);
-                Baron.getTasks().addTask(task);
+                tasks.addTask(task);
             } catch (BaronException e) {
                 LOGGER.warning(e.getMessage());
             }
@@ -155,43 +101,10 @@ class Storage {
 
         for (String taskString : taskStrings.split(System.lineSeparator())) {
             if (!taskString.isBlank()) {
-                establishRequirements(taskString, uuidToTask);
+                establishRequirements(tasks, uuidToTask, taskString);
             }
         }
-    }
-
-    /**
-     * Replaces the task file with a successfully written temporary file.
-     *
-     * @param temporaryFile The temporary file containing the new task state.
-     * @throws IOException If the file cannot be moved.
-     */
-    private void moveTemporaryFile(Path temporaryFile) throws IOException {
-        try {
-            Files.move(
-                    temporaryFile,
-                    filePath,
-                    StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.REPLACE_EXISTING);
-        } catch (AtomicMoveNotSupportedException e) {
-            Files.move(temporaryFile, filePath, StandardCopyOption.REPLACE_EXISTING);
-        }
-    }
-
-    /**
-     * Deletes the temporary file after a save attempt.
-     *
-     * @param temporaryFile The temporary file to delete, if it was created.
-     */
-    private void deleteTemporaryFile(Path temporaryFile) {
-        if (temporaryFile == null) {
-            return;
-        }
-        try {
-            Files.deleteIfExists(temporaryFile);
-        } catch (IOException e) {
-            // Cleanup failure must not hide the original save result.
-        }
+        return tasks;
     }
 
     /**
@@ -230,13 +143,7 @@ class Storage {
         }
     }
 
-    /**
-     * Restores the prerequisite relationships in a saved task record.
-     *
-     * @param taskString The saved task record.
-     * @param uuidToTask The tasks indexed by their identifiers.
-     */
-    private void establishRequirements(String taskString, Map<UUID, Task> uuidToTask) {
+    private void establishRequirements(TaskList tasks, Map<UUID, Task> uuidToTask, String taskString) {
         try {
             String[] taskFields = taskString.split(FIELD_SEPARATOR, -1);
             Task task = uuidToTask.get(UUID.fromString(taskFields[TASK_UUID_FIELD_INDEX]));
@@ -250,7 +157,7 @@ class Storage {
                     .filter(Objects::nonNull)
                     .toList();
             TaskList requiredTasks = new TaskList(requiredTasksFromFile);
-            task.setRequiredTasks(requiredTasks);
+            task.setRequiredTasks(tasks, requiredTasks);
         } catch (ArrayIndexOutOfBoundsException | IllegalArgumentException | BaronException e) {
             LOGGER.warning("Could not restore relationships for task record '" + taskString + "'.");
         }
@@ -270,11 +177,55 @@ class Storage {
             return null;
         }
     }
-}
 
-/** Represents a task mutation that may fail with a Baron command error. */
-@FunctionalInterface
-interface TaskOperation<T> {
-    /** Executes the task mutation. */
-    T execute() throws BaronException;
+    /**
+     * Replaces the saved tasks with the current contents of Baron's task list.
+     */
+    public void writeTasks(TaskList tasks) throws BaronException {
+        Path temporaryFile = null;
+        try {
+            Path parent = filePath.getParent() == null ? Path.of(".") : filePath.getParent();
+            temporaryFile = Files.createTempFile(parent, filePath.getFileName().toString(), ".tmp");
+            Files.writeString(temporaryFile, tasks.toFileString(), StandardCharsets.UTF_8);
+            moveTemporaryFile(temporaryFile);
+        } catch (IOException e) {
+            throw new BaronException("Could not save tasks. Please check that the task file is writable.");
+        } finally {
+            deleteTemporaryFile(temporaryFile);
+        }
+    }
+
+    /**
+     * Replaces the task file with a successfully written temporary file.
+     *
+     * @param temporaryFile The temporary file containing the new task state.
+     * @throws IOException If the file cannot be moved.
+     */
+    private void moveTemporaryFile(Path temporaryFile) throws IOException {
+        try {
+            Files.move(
+                    temporaryFile,
+                    filePath,
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(temporaryFile, filePath, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    /**
+     * Deletes the temporary file after a save attempt.
+     *
+     * @param temporaryFile The temporary file to delete, if it was created.
+     */
+    private void deleteTemporaryFile(Path temporaryFile) {
+        if (temporaryFile == null) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(temporaryFile);
+        } catch (IOException e) {
+            // Cleanup failure must not hide the original save result.
+        }
+    }
 }

@@ -18,14 +18,17 @@ import baron.core.task.Todo;
  */
 class Parser {
     private final Storage storage;
+    private TaskList allTasks;
+    private String snapshot;
 
     /**
      * Creates a parser that uses the specified persistent storage.
      *
      * @param storage The persistent task storage.
      */
-    public Parser(Storage storage) {
+    public Parser(Storage storage, TaskList allTasks) {
         this.storage = storage;
+        this.allTasks = allTasks;
     }
 
     /**
@@ -35,7 +38,9 @@ class Parser {
      * @return The response to show to the user.
      */
     public String parse(String command) {
-        assert command != null : "Commands passed from the user interface must not be null";
+        if (command == null || command.isBlank()) {
+            return "Please enter a command";
+        }
         try {
             return routeCommand(command);
         } catch (BaronException e) {
@@ -45,6 +50,7 @@ class Parser {
 
     /** Routes the specified command to the handler responsible for it. */
     private String routeCommand(String command) throws BaronException {
+        snapshot = allTasks.toFileString();
         if (command.equals("bye")) {
             return Response.respondWithOutro();
         } else if (command.matches("^list(\\s+.*)?$")) {
@@ -71,49 +77,47 @@ class Parser {
 
     /** Returns the response for a list command. */
     private String handleList(String command) throws BaronException {
-        if (Baron.getTasks().size() == 0) {
+        if (allTasks.size() == 0) {
             throw new BaronException("There are no tasks in your list");
         }
         boolean willShowRequiredTasks = command.matches("^.*\\s+/requires(\\s+.*)?$");
         boolean willShowUnlockedTasks = command.matches("^.*\\s+/unlocks(\\s+.*)?$");
-        return Response.respondWithAllTasks(Baron.getTasks(), willShowRequiredTasks, willShowUnlockedTasks);
+        return Response.respondWithAllTasks(allTasks, willShowRequiredTasks, willShowUnlockedTasks);
     }
 
     /** Processes a mark command. */
     private String handleMark(String command) throws BaronException {
         int taskIndex = parseTaskIndex(getRequiredArgument("mark", command));
-        Task markedTask = storage.executeAndSave(() -> Baron.getTasks().markTask(taskIndex));
-        return Response.respondWithMarkedTask(markedTask);
+        Task markedTask = allTasks.markTask(taskIndex);
+        saveOrRecover();
+        return Response.respondWithMarkedTask(markedTask, allTasks);
     }
 
     /** Processes an unmark command. */
     private String handleUnmark(String command) throws BaronException {
         int taskIndex = parseTaskIndex(getRequiredArgument("unmark", command));
-        Task unmarkedTask = storage.executeAndSave(() -> Baron.getTasks().unmarkTask(taskIndex));
-        return Response.respondWithUnmarkedTask(unmarkedTask);
+        Task unmarkedTask = allTasks.unmarkTask(taskIndex);
+        saveOrRecover();
+        return Response.respondWithUnmarkedTask(unmarkedTask, allTasks);
     }
 
     /** Processes a to-do command. */
     private String handleTodo(String command) throws BaronException {
         String description = getRequiredArgument("todo", command);
-        Todo addedTask = storage.executeAndSave(() -> {
-            Todo newTask = new Todo(description);
-            Baron.getTasks().addTask(newTask);
-            return newTask;
-        });
-        return Response.respondWithAddedTask(addedTask, Baron.getTasks());
+        Todo newTask = new Todo(description);
+        allTasks.addTask(newTask);
+        saveOrRecover();
+        return Response.respondWithAddedTask(newTask, allTasks);
     }
 
     /** Processes a deadline command. */
     private String handleDeadline(String command) throws BaronException {
         String description = getRequiredArgument("deadline", command);
         LocalDateTime deadline = parseDateTime(getRequiredArgument("/by", command));
-        Deadline addedTask = storage.executeAndSave(() -> {
-            Deadline newTask = new Deadline(description, deadline);
-            Baron.getTasks().addTask(newTask);
-            return newTask;
-        });
-        return Response.respondWithAddedTask(addedTask, Baron.getTasks());
+        Deadline newTask = new Deadline(description, deadline);
+        allTasks.addTask(newTask);
+        saveOrRecover();
+        return Response.respondWithAddedTask(newTask, allTasks);
     }
 
     /** Processes an event command. */
@@ -124,25 +128,24 @@ class Parser {
         if (!fromDate.isBefore(toDate)) {
             throw new BaronException("/to date must be after /from date");
         }
-        Event addedTask = storage.executeAndSave(() -> {
-            Event newTask = new Event(description, fromDate, toDate);
-            Baron.getTasks().addTask(newTask);
-            return newTask;
-        });
-        return Response.respondWithAddedTask(addedTask, Baron.getTasks());
+        Event newTask = new Event(description, fromDate, toDate);
+        allTasks.addTask(newTask);
+        saveOrRecover();
+        return Response.respondWithAddedTask(newTask, allTasks);
     }
 
     /** Processes a delete command. */
     private String handleDelete(String command) throws BaronException {
         int taskIndex = parseTaskIndex(getRequiredArgument("delete", command));
-        Task deletedTask = storage.executeAndSave(() -> Baron.getTasks().deleteTask(taskIndex));
-        return Response.respondWithDeletedTask(deletedTask, Baron.getTasks());
+        Task deletedTask = allTasks.deleteTask(taskIndex);
+        saveOrRecover();
+        return Response.respondWithDeletedTask(deletedTask, allTasks);
     }
 
     /** Processes a find command. */
     private String handleFind(String command) throws BaronException {
         String keyword = getRequiredArgument("find", command);
-        TaskList matchingTasks = Baron.getTasks().findTasks(keyword);
+        TaskList matchingTasks = allTasks.findTasks(keyword);
         if (matchingTasks.size() == 0) {
             throw new BaronException("None of your tasks match '" + keyword + "'");
         }
@@ -152,25 +155,28 @@ class Parser {
     /** Processes a specify command. */
     private String handleSpecify(String command) throws BaronException {
         int taskIndex = parseTaskIndex(getRequiredArgument("specify", command));
-        Task task = Baron.getTasks().getTasks().get(taskIndex);
-        storage.executeAndSave(() -> {
-            task.clearRelationships();
+        Task task = allTasks.getTasks().get(taskIndex);
+        task.clearRelationships();
+        try {
             String requiredTaskNumbers = getRequiredArgument("/requires", command);
             if (requiredTaskNumbers.equals("-")) {
-                task.setRequiredTasks(new TaskList());
+                task.setRequiredTasks(allTasks, new TaskList());
             } else {
-                task.setRequiredTasks(parseTaskNumbers(requiredTaskNumbers));
+                task.setRequiredTasks(allTasks, parseTaskNumbers(requiredTaskNumbers));
             }
 
             String unlockedTaskNumbers = getRequiredArgument("/unlocks", command);
             if (unlockedTaskNumbers.equals("-")) {
-                task.setUnlockedTasks(new TaskList());
+                task.setUnlockedTasks(allTasks, new TaskList());
             } else {
-                task.setUnlockedTasks(parseTaskNumbers(unlockedTaskNumbers));
+                task.setUnlockedTasks(allTasks, parseTaskNumbers(unlockedTaskNumbers));
             }
-            return task;
-        });
-        return Response.respondWithSpecifiedTask(task);
+        } catch (BaronException baronException) {
+            allTasks = storage.loadTasks(snapshot);
+            throw baronException;
+        }
+        saveOrRecover();
+        return Response.respondWithSpecifiedTask(task, allTasks);
     }
 
     /** Returns the non-blank argument that follows the specified command flag. */
@@ -204,7 +210,7 @@ class Parser {
     private int parseTaskIndex(String taskNumber) throws BaronException {
         try {
             int index = Integer.parseInt(taskNumber) - 1;
-            Baron.getTasks().checkTaskIndex(index);
+            allTasks.checkTaskIndex(index);
             return index;
         } catch (NumberFormatException e) {
             throw new BaronException("Task number must be an integer");
@@ -227,8 +233,17 @@ class Parser {
 
         TaskList tasks = new TaskList();
         setOfIndices.stream()
-                .map(index -> Baron.getTasks().getTasks().get(index))
+                .map(index -> allTasks.getTasks().get(index))
                 .forEach(tasks::addTask);
         return tasks;
+    }
+
+    private void saveOrRecover() throws BaronException {
+        try {
+            storage.writeTasks(allTasks);
+        } catch (BaronException baronException) {
+            allTasks = storage.loadTasks(snapshot);
+            throw baronException;
+        }
     }
 }
