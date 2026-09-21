@@ -226,9 +226,9 @@ class Parser {
         }
 
         TaskList tasks = new TaskList();
-        for (int index : setOfIndices) {
-            tasks.addTask(Baron.getTasks().getTasks().get(index));
-        }
+        setOfIndices.stream()
+                .map(index -> Baron.getTasks().getTasks().get(index))
+                .forEach(tasks::addTask);
         return tasks;
     }
 }

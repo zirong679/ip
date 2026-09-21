@@ -35,6 +35,7 @@ class StorageTest {
     @BeforeEach
     void setUp() {
         clearTasks();
+        StorageWarningHandler.getInstance().clearWarnings();
     }
 
     /**
@@ -157,6 +158,23 @@ class StorageTest {
 
         assertEquals(1, Baron.getTasks().size());
         assertTrue(Baron.getTasks().getTasks().getFirst().getNumberedTask().contains("valid"));
+    }
+
+    /** Verifies that a relationship to a missing task is skipped and reported as a warning. */
+    @Test
+    void readTasks_missingRelationshipTarget_loadsTaskAndReportsWarning() throws IOException {
+        Path filePath = tempDir.resolve("tasks.txt");
+        Files.writeString(
+                filePath,
+                "00000000-0000-0000-0000-000000000001 | T | 0 | valid | "
+                        + "00000000-0000-0000-0000-000000000099");
+
+        Storage storage = new Storage(filePath);
+        storage.readTasks();
+
+        assertEquals(1, Baron.getTasks().size());
+        assertEquals(1, StorageWarningHandler.getInstance().getWarnings().size());
+        assertTrue(StorageWarningHandler.getInstance().getWarnings().getFirst().contains("missing task"));
     }
 
     /**

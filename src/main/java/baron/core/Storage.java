@@ -10,8 +10,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import baron.core.exception.BaronException;
 import baron.core.task.Deadline;
@@ -25,10 +28,15 @@ import baron.core.task.Todo;
  * Reads and writes Baron tasks in a text file.
  */
 class Storage {
+    private static final Logger LOGGER = Logger.getLogger(Storage.class.getName());
+
+    static {
+        StorageWarningHandler.initialize();
+    }
+
     private static final String FIELD_SEPARATOR = " \\| ";
     private static final String TASK_UUID_SEPARATOR = ", ";
     private static final String COMPLETED_TASK_STATUS = "1";
-
     private static final int TASK_UUID_FIELD_INDEX = 0;
     private static final int TASK_TYPE_FIELD_INDEX = 1;
     private static final int TASK_STATUS_FIELD_INDEX = 2;
@@ -53,7 +61,7 @@ class Storage {
                 Files.createFile(filePath);
             }
         } catch (IOException e) {
-            System.out.println(e.getMessage());
+            LOGGER.warning("Could not initialize the task file: " + e.getMessage());
         }
     }
 
@@ -65,7 +73,7 @@ class Storage {
         try {
             taskStrings = Files.readString(filePath, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            System.out.println(e.getMessage());
+            LOGGER.warning("Could not read the task file: " + e.getMessage());
             return;
         }
         loadTasks(taskStrings);
@@ -141,7 +149,7 @@ class Storage {
                 uuidToTask.put(task.getUuid(), task);
                 Baron.getTasks().addTask(task);
             } catch (BaronException e) {
-                System.out.println(e.getMessage());
+                LOGGER.warning(e.getMessage());
             }
         }
 
@@ -235,12 +243,31 @@ class Storage {
             if (task == null || taskFields[REQUIRED_TASKS_FIELD_INDEX].isBlank()) {
                 return;
             }
-            TaskList requiredTasks = new TaskList(
-                    Arrays.stream(taskFields[REQUIRED_TASKS_FIELD_INDEX].split(TASK_UUID_SEPARATOR))
-                            .map(uuid -> uuidToTask.get(UUID.fromString(uuid))).toList());
+            List<Task> requiredTasksFromFile = Arrays.stream(
+                    taskFields[REQUIRED_TASKS_FIELD_INDEX].split(TASK_UUID_SEPARATOR))
+                    .map(String::trim)
+                    .map(uuid -> findTask(uuid, uuidToTask))
+                    .filter(Objects::nonNull)
+                    .toList();
+            TaskList requiredTasks = new TaskList(requiredTasksFromFile);
             task.setRequiredTasks(requiredTasks);
         } catch (ArrayIndexOutOfBoundsException | IllegalArgumentException | BaronException e) {
-            System.out.println(e.getMessage());
+            LOGGER.warning("Could not restore relationships for task record '" + taskString + "'.");
+        }
+    }
+
+    /** Returns the task identified by the UUID, recording a warning if it is missing. */
+    private Task findTask(String uuidString, Map<UUID, Task> uuidToTask) {
+        try {
+            UUID uuid = UUID.fromString(uuidString);
+            Task task = uuidToTask.get(uuid);
+            if (task == null) {
+                LOGGER.warning("Could not restore relationship to missing task '" + uuidString + "'.");
+            }
+            return task;
+        } catch (IllegalArgumentException e) {
+            LOGGER.warning("Could not restore relationship to invalid task ID '" + uuidString + "'.");
+            return null;
         }
     }
 }

@@ -3,6 +3,7 @@ package baron.controller;
 import java.util.Objects;
 
 import baron.core.Baron;
+import baron.core.StorageWarningHandler;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -56,7 +57,12 @@ public class MainWindow extends AnchorPane {
      */
     public void setBaron(Baron baron) {
         this.baron = baron;
-        dialogContainer.getChildren().add(DialogBox.getBaronDialog(baron.getIntro(), baronImage));
+        String intro = baron.getIntro();
+        if (!StorageWarningHandler.getInstance().getWarnings().isEmpty()) {
+            intro += "\n\nWarning: Some saved data could not be restored:\n"
+                    + String.join("\n", StorageWarningHandler.getInstance().getWarnings());
+        }
+        dialogContainer.getChildren().add(DialogBox.getBaronDialog(intro, baronImage));
     }
 
     /**

@@ -193,9 +193,7 @@ public abstract class Task {
         if (equals(task)) {
             return true;
         }
-        return requiredTasks.getTasks().stream()
-                .map(requiredTask -> requiredTask.willRequire(task))
-                .reduce(false, (result, bool) -> result || bool);
+        return requiredTasks.getTasks().stream().anyMatch(requiredTask -> requiredTask.willRequire(task));
     }
 
     /**
@@ -208,9 +206,7 @@ public abstract class Task {
         if (equals(task)) {
             return true;
         }
-        return unlockedTasks.getTasks().stream()
-                .map(unlockedTask -> unlockedTask.willUnlock(task))
-                .reduce(false, (result, bool) -> result || bool);
+        return unlockedTasks.getTasks().stream().anyMatch(unlockedTask -> unlockedTask.willUnlock(task));
     }
 
     /**
