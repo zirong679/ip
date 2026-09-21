@@ -17,8 +17,6 @@ public abstract class Task {
     private boolean isDone;
     private TaskList requiredTasks;
     private TaskList unlockedTasks;
-    private TaskList savedRequiredTasks;
-    private TaskList savedUnlockedTasks;
 
     /**
      * Creates a task with its immutable identity and an empty dependency set.
@@ -171,14 +169,6 @@ public abstract class Task {
     }
 
     /**
-     * Saves this task's current prerequisite and dependent-task relationships.
-     */
-    public void saveRelationships() {
-        savedRequiredTasks = requiredTasks;
-        savedUnlockedTasks = unlockedTasks;
-    }
-
-    /**
      * Removes this task's current prerequisite and dependent-task relationships.
      */
     public void clearRelationships() {
@@ -191,16 +181,6 @@ public abstract class Task {
             unlockedTask.requiredTasks.deleteTask(this);
         }
         unlockedTasks = new TaskList();
-    }
-
-    /**
-     * Restores the prerequisite and dependent-task relationships saved most recently.
-     *
-     * @throws BaronException If the restored relationships form a cycle.
-     */
-    public void recoverRelationships() throws BaronException {
-        setRequiredTasks(savedRequiredTasks);
-        setUnlockedTasks(savedUnlockedTasks);
     }
 
     /**

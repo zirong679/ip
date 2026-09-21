@@ -2,8 +2,8 @@ package baron.core;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
@@ -61,7 +61,6 @@ class Storage {
      * Reads saved tasks and adds them to Baron's list of tasks.
      */
     public void readTasks() {
-        Baron.clearTasks();
         String taskStrings;
         try {
             taskStrings = Files.readString(filePath, StandardCharsets.UTF_8);
@@ -69,34 +68,46 @@ class Storage {
             System.out.println(e.getMessage());
             return;
         }
-
-        Map<UUID, Task> uuidToTask = new HashMap<>();
-        for (String taskString : taskStrings.split(System.lineSeparator())) {
-            if (taskString.isBlank()) {
-                continue;
-            }
-            try {
-                Task task = parseTaskString(taskString);
-                uuidToTask.put(task.getUuid(), task);
-                Baron.getTasks().addTask(task);
-            } catch (BaronException e) {
-                System.out.println(e.getMessage());
-            }
-        }
-
-        for (String taskString : taskStrings.split(System.lineSeparator())) {
-            if (taskString.isBlank()) {
-                continue;
-            }
-            establishRequirements(taskString, uuidToTask);
-        }
+        loadTasks(taskStrings);
     }
 
     /**
-     * Reloads the last successfully persisted task state.
+     * Returns an in-memory snapshot of the current task state.
+     *
+     * @return The serialized task state.
      */
-    public void reloadTasks() {
-        readTasks();
+    public String snapshotTasks() {
+        return Baron.getTasks().toFileString();
+    }
+
+    /**
+     * Restores tasks from an in-memory snapshot without reading from disk.
+     *
+     * @param snapshot The serialized task state to restore.
+     */
+    public void restoreTasks(String snapshot) {
+        loadTasks(snapshot);
+    }
+
+    /**
+     * Executes a task mutation and saves it, restoring the previous state if either operation
+     * fails.
+     *
+     * @param operation The task mutation to execute.
+     * @param <T> The mutation result type.
+     * @return The result produced by the mutation.
+     * @throws BaronException If the mutation or save operation fails.
+     */
+    public <T> T executeAndSave(TaskOperation<T> operation) throws BaronException {
+        String snapshot = snapshotTasks();
+        try {
+            T result = operation.execute();
+            writeTasks();
+            return result;
+        } catch (BaronException exception) {
+            restoreTasks(snapshot);
+            throw exception;
+        }
     }
 
     /**
@@ -113,6 +124,31 @@ class Storage {
             throw new BaronException("Could not save tasks. Please check that the task file is writable.");
         } finally {
             deleteTemporaryFile(temporaryFile);
+        }
+    }
+
+    /** Loads tasks from the supplied serialized task contents. */
+    private void loadTasks(String taskStrings) {
+        Baron.clearTasks();
+
+        Map<UUID, Task> uuidToTask = new HashMap<>();
+        for (String taskString : taskStrings.split(System.lineSeparator())) {
+            if (taskString.isBlank()) {
+                continue;
+            }
+            try {
+                Task task = parseTaskString(taskString);
+                uuidToTask.put(task.getUuid(), task);
+                Baron.getTasks().addTask(task);
+            } catch (BaronException e) {
+                System.out.println(e.getMessage());
+            }
+        }
+
+        for (String taskString : taskStrings.split(System.lineSeparator())) {
+            if (!taskString.isBlank()) {
+                establishRequirements(taskString, uuidToTask);
+            }
         }
     }
 
@@ -207,4 +243,11 @@ class Storage {
             System.out.println(e.getMessage());
         }
     }
+}
+
+/** Represents a task mutation that may fail with a Baron command error. */
+@FunctionalInterface
+interface TaskOperation<T> {
+    /** Executes the task mutation. */
+    T execute() throws BaronException;
 }

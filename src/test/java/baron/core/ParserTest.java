@@ -60,10 +60,10 @@ class ParserTest {
     }
 
     /**
-     * Verifies that a task is removed from memory when saving the command fails.
+     * Verifies that the in-memory task state is restored when saving the command fails.
      */
     @Test
-    void parse_saveFailure_taskRestoredFromLastPersistedState() throws IOException {
+    void parse_saveFailure_taskRestoredFromInMemorySnapshot() throws IOException {
         Path directoryInsteadOfFile = tempDir.resolve("tasks");
         Files.createDirectory(directoryInsteadOfFile);
         parser = new Parser(new Storage(directoryInsteadOfFile));
