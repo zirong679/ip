@@ -119,7 +119,8 @@ public class TaskList {
     public Task deleteTask(int taskIndex) throws BaronException {
         checkTaskIndex(taskIndex);
         Task taskToDelete = tasks.get(taskIndex);
-        taskToDelete.clearRelationships();
+        taskToDelete.clearRequiredTasks();
+        taskToDelete.clearUnlockedTasks();
         return tasks.remove(taskIndex);
     }
 

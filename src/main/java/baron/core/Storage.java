@@ -36,7 +36,6 @@ class Storage {
 
     private static final String FIELD_SEPARATOR = " \\| ";
     private static final String TASK_UUID_SEPARATOR = ", ";
-    private static final String COMPLETED_TASK_STATUS = "1";
     private static final int TASK_UUID_FIELD_INDEX = 0;
     private static final int TASK_TYPE_FIELD_INDEX = 1;
     private static final int TASK_STATUS_FIELD_INDEX = 2;
@@ -101,6 +100,9 @@ class Storage {
             }
             try {
                 Task task = parseTaskString(taskString);
+                if (uuidToTask.containsKey(task.getUuid())) {
+                    throw new BaronException("Duplicate task ID in record '" + taskString + "'");
+                }
                 uuidToTask.put(task.getUuid(), task);
                 tasks.addTask(task);
             } catch (BaronException e) {
@@ -141,8 +143,10 @@ class Storage {
                         LocalDateTime.parse(taskFields[EVENT_START_FIELD_INDEX]),
                         LocalDateTime.parse(taskFields[EVENT_END_FIELD_INDEX]));
             };
-            if (taskFields[TASK_STATUS_FIELD_INDEX].equals(COMPLETED_TASK_STATUS)) {
-                task.markAsDone();
+            switch (taskFields[TASK_STATUS_FIELD_INDEX]) {
+                case "1" -> task.markAsDone();
+                case "0" -> task.markAsNotDone();
+                default -> throw new BaronException("Unknown task status");
             }
             return task;
         } catch (ArrayIndexOutOfBoundsException

@@ -201,19 +201,15 @@ class Parser {
     private String handleSpecify(String command) throws BaronException {
         int taskIndex = parseTaskIndex(getRequiredArgument("specify", command));
         Task task = allTasks.getTasks().get(taskIndex);
-        task.clearRelationships();
+        task.clearRequiredTasks();
+        task.clearUnlockedTasks();
         try {
             String requiredTaskNumbers = getRequiredArgument("/requires", command);
-            if (requiredTaskNumbers.equals("-")) {
-                task.setRequiredTasks(allTasks, new TaskList());
-            } else {
+            if (!requiredTaskNumbers.equals("-")) {
                 task.setRequiredTasks(allTasks, parseTaskNumbers(requiredTaskNumbers));
             }
-
             String unlockedTaskNumbers = getRequiredArgument("/unlocks", command);
-            if (unlockedTaskNumbers.equals("-")) {
-                task.setUnlockedTasks(allTasks, new TaskList());
-            } else {
+            if (!unlockedTaskNumbers.equals("-")) {
                 task.setUnlockedTasks(allTasks, parseTaskNumbers(unlockedTaskNumbers));
             }
         } catch (BaronException baronException) {

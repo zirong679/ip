@@ -94,14 +94,19 @@ public abstract class Task {
     }
 
     /**
-     * Removes this task's current prerequisite and dependent-task relationships.
+     * Removes this task's current relationship with required tasks.
      */
-    public void clearRelationships() {
+    public void clearRequiredTasks() {
         for (Task requiredTask : requiredTasks.getTasks()) {
             requiredTask.unlockedTasks.deleteTask(this);
         }
         requiredTasks = new TaskList();
+    }
 
+    /**
+     * Removes this task's current relationships with unlocked tasks.
+     */
+    public void clearUnlockedTasks() {
         for (Task unlockedTask : unlockedTasks.getTasks()) {
             unlockedTask.requiredTasks.deleteTask(this);
         }
@@ -117,24 +122,25 @@ public abstract class Task {
      */
     public void setRequiredTasks(TaskList allTasks, TaskList requiredTasks) throws BaronException {
         assert requiredTasks != null : "Tasks required must not be null";
+        clearRequiredTasks();
         for (Task requiredTask : requiredTasks.getTasks()) {
             if (isDone && !requiredTask.isDone) {
-                clearRelationships();
+                clearRequiredTasks();
                 throw new BaronException(String.format(
                         "%1$s requires %2$s, but %1$s is done and %2$s is not done",
                         allTasks.getTaskNumber(this),
                         allTasks.getTaskNumber(requiredTask)));
             }
             if (willUnlock(requiredTask)) {
-                clearRelationships();
+                clearRequiredTasks();
                 throw new BaronException(String.format(
                         "%1$s cannot require %2$s because %1$s unlocks %2$s",
                         allTasks.getTaskNumber(this),
                         allTasks.getTaskNumber(requiredTask)));
             }
             requiredTask.unlockedTasks.addTask(this);
+            this.requiredTasks.addTask(requiredTask);
         }
-        this.requiredTasks = requiredTasks;
     }
 
     /**
@@ -146,24 +152,25 @@ public abstract class Task {
      */
     public void setUnlockedTasks(TaskList allTasks, TaskList unlockedTasks) throws BaronException {
         assert unlockedTasks != null : "Tasks unlocked must not be null";
+        clearUnlockedTasks();
         for (Task unlockedTask : unlockedTasks.getTasks()) {
             if (!isDone && unlockedTask.isDone) {
-                clearRelationships();
+                clearUnlockedTasks();
                 throw new BaronException(String.format(
                         "%1$s unlocks %2$s, but %1$s is not done and %2$s is done",
                         allTasks.getTaskNumber(this),
                         allTasks.getTaskNumber(unlockedTask)));
             }
             if (willRequire(unlockedTask)) {
-                clearRelationships();
+                clearUnlockedTasks();
                 throw new BaronException(String.format(
                         "%1$s cannot unlock %2$s because %1$s requires %2$s",
                         allTasks.getTaskNumber(this),
                         allTasks.getTaskNumber(unlockedTask)));
             }
             unlockedTask.requiredTasks.addTask(this);
+            this.unlockedTasks.addTask(unlockedTask);
         }
-        this.unlockedTasks = unlockedTasks;
     }
 
     /**
