@@ -53,6 +53,9 @@ class Parser {
         snapshot = allTasks.toFileString();
         if (command.equals("bye")) {
             return Response.respondWithOutro();
+        } else if (!storage.isAvailable()) {
+            throw new BaronException(
+                    "Could not access the task file. Task commands are disabled until storage is available.");
         } else if (command.matches("^list(\\s+.*)?$")) {
             return handleList(command);
         } else if (command.matches("^mark(\\s+.*)?$")) {

@@ -47,6 +47,7 @@ class Storage {
     private static final int EVENT_END_FIELD_INDEX = 6;
 
     private final Path filePath;
+    private boolean available;
 
     /**
      * Creates storage for the specified task file, creating it if necessary.
@@ -56,6 +57,7 @@ class Storage {
     public Storage(Path filePath) {
         Objects.requireNonNull(filePath, "The task file path must not be null");
         this.filePath = filePath;
+        available = true;
         try {
             Path parent = filePath.getParent();
             if (parent != null) {
@@ -65,8 +67,14 @@ class Storage {
                 Files.createFile(filePath);
             }
         } catch (IOException e) {
+            available = false;
             LOGGER.warning("Could not initialize the task file: " + e.getMessage());
         }
+    }
+
+    /** Returns whether the task file can be safely read and written. */
+    public boolean isAvailable() {
+        return available;
     }
 
     /**
@@ -77,6 +85,7 @@ class Storage {
         try {
             taskStrings = Files.readString(filePath, StandardCharsets.UTF_8);
         } catch (IOException e) {
+            available = false;
             LOGGER.warning("Could not read the task file: " + e.getMessage());
         }
         return loadTasks(taskStrings);
@@ -182,6 +191,9 @@ class Storage {
      * Replaces the saved tasks with the current contents of Baron's task list.
      */
     public void writeTasks(TaskList tasks) throws BaronException {
+        if (!available) {
+            throw new BaronException("Could not access the task file. Your tasks were not changed.");
+        }
         Path temporaryFile = null;
         try {
             Path parent = filePath.getParent() == null ? Path.of(".") : filePath.getParent();
