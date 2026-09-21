@@ -3,6 +3,7 @@ package baron.core.task;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import baron.core.exception.BaronException;
@@ -26,7 +27,7 @@ public class TaskList {
      * @param tasks The tasks to copy into this list.
      */
     public TaskList(Collection<Task> tasks) {
-        this.tasks = new ArrayList<>(tasks);
+        this.tasks = new ArrayList<>(Objects.requireNonNull(tasks));
     }
 
     /**
@@ -51,16 +52,6 @@ public class TaskList {
     }
 
     /**
-     * Returns the zero-based position of a task in this list.
-     *
-     * @param task The task to locate.
-     * @return The task index, or {@code -1} if it is absent.
-     */
-    public int indexOf(Task task) {
-        return tasks.indexOf(task);
-    }
-
-    /**
      * Marks the task at the given index as completed.
      *
      * @param taskIndex The zero-based task index.
@@ -69,7 +60,15 @@ public class TaskList {
      */
     public Task markTask(int taskIndex) throws BaronException {
         checkTaskIndex(taskIndex);
-        return tasks.get(taskIndex).markAsDone();
+        Task task = tasks.get(taskIndex);
+        TaskList incompleteRequiredTasks = task.getAllRequiredTasks().getIncompleteTasks();
+        if (incompleteRequiredTasks.size() > 0) {
+            throw new BaronException(String.format(
+                    "Cannot mark task %s as done because the following tasks are not done:\n%s",
+                    getTaskNumber(task),
+                    incompleteRequiredTasks.getNumberedTasks(this, false, false)));
+        }
+        return task.markAsDone();
     }
 
     /**
@@ -81,7 +80,15 @@ public class TaskList {
      */
     public Task unmarkTask(int taskIndex) throws BaronException {
         checkTaskIndex(taskIndex);
-        return tasks.get(taskIndex).markAsNotDone();
+        Task task = tasks.get(taskIndex);
+        TaskList completedUnlockedTasks = tasks.get(taskIndex).getAllUnlockedTasks().getCompletedTasks();
+        if (completedUnlockedTasks.size() > 0) {
+            throw new BaronException(String.format(
+                    "Cannot mark task %s as not done because the following tasks are done:\n%s",
+                    getTaskNumber(task),
+                    completedUnlockedTasks.getNumberedTasks(this, false, false)));
+        }
+        return task.markAsNotDone();
     }
 
     /**
@@ -90,8 +97,7 @@ public class TaskList {
      * @param task The task to add.
      */
     public void addTask(Task task) {
-        assert task != null : "A task list must not contain null tasks";
-        tasks.add(task);
+        tasks.add(Objects.requireNonNull(task, "A task list must not contain null tasks"));
     }
 
     /**
@@ -113,7 +119,8 @@ public class TaskList {
     public Task deleteTask(int taskIndex) throws BaronException {
         checkTaskIndex(taskIndex);
         Task taskToDelete = tasks.get(taskIndex);
-        taskToDelete.clearRelationships();
+        taskToDelete.clearRequiredTasks();
+        taskToDelete.clearUnlockedTasks();
         return tasks.remove(taskIndex);
     }
 
@@ -124,7 +131,7 @@ public class TaskList {
      * @return A task list of matching tasks, in their original order.
      */
     public TaskList findTasks(String keyword) {
-        assert keyword != null : "Task searches require a keyword";
+        Objects.requireNonNull(keyword, "Task searches require a keyword");
         return new TaskList(tasks.stream()
                 .filter(task -> task.hasKeyword(keyword))
                 .toList());
@@ -144,7 +151,7 @@ public class TaskList {
      *
      * @return The completed tasks.
      */
-    protected TaskList getCompletedTasks() {
+    private TaskList getCompletedTasks() {
         return new TaskList(tasks.stream().filter(Task::isDone).toList());
     }
 
@@ -153,8 +160,19 @@ public class TaskList {
      *
      * @return The incomplete tasks.
      */
-    protected TaskList getIncompleteTasks() {
+    private TaskList getIncompleteTasks() {
         return new TaskList(tasks.stream().filter(task -> !task.isDone()).toList());
+    }
+
+    /**
+     * Returns the one-based display number for a task in this list.
+     *
+     * @param task The task whose number is requested.
+     * @return The task number, or {@code #?} if the task is not in this list.
+     */
+    protected String getTaskNumber(Task task) {
+        int number = tasks.indexOf(task) + 1;
+        return number == 0 ? "#?" : "#" + number;
     }
 
     /**
@@ -188,24 +206,16 @@ public class TaskList {
     }
 
     /**
-     * Returns every task in this list with its current task number.
-     *
-     * @return The numbered tasks.
-     */
-    public String getNumberedTasks() {
-        return tasks.stream().map(Task::getNumberedTask).collect(Collectors.joining("\n"));
-    }
-
-    /**
      * Returns every task with its number and, optionally, its prerequisite and dependent tasks.
      *
+     * @param allTasks All tasks, used to determine each task's number.
      * @param showRequiredTasks Whether to include prerequisite tasks.
      * @param showUnlockedTasks Whether to include dependent tasks.
      * @return The numbered tasks and requested relationships.
      */
-    public String getNumberedTasksWithRelationship(boolean showRequiredTasks, boolean showUnlockedTasks) {
+    public String getNumberedTasks(TaskList allTasks, boolean showRequiredTasks, boolean showUnlockedTasks) {
         return tasks.stream()
-                .map(task -> task.getNumberedTaskWithRelationship(showRequiredTasks, showUnlockedTasks))
+                .map(task -> task.getNumberedTask(allTasks, showRequiredTasks, showUnlockedTasks))
                 .collect(Collectors.joining("\n\n"));
     }
 }

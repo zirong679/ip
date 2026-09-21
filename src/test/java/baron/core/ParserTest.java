@@ -16,7 +16,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import baron.core.task.Deadline;
 import baron.core.task.Event;
-import baron.core.task.Task;
+import baron.core.task.TaskList;
 import baron.core.task.Todo;
 
 /**
@@ -28,15 +28,16 @@ class ParserTest {
 
     private Path filePath;
     private Parser parser;
+    private TaskList tasks;
 
     /**
      * Creates a parser with an empty shared task list and an isolated storage file.
      */
     @BeforeEach
     void setUp() {
-        clearTasks();
         filePath = tempDir.resolve("tasks.txt");
-        parser = new Parser(new Storage(filePath));
+        tasks = new TaskList();
+        parser = new Parser(new Storage(filePath), tasks);
     }
 
     /**
@@ -44,7 +45,6 @@ class ParserTest {
      */
     @AfterEach
     void tearDown() {
-        clearTasks();
     }
 
     /**
@@ -54,9 +54,24 @@ class ParserTest {
     void parse_todoCommand_taskAddedAndSaved() throws IOException {
         String response = parser.parse("todo buy milk");
 
-        assertEquals(1, Baron.getTasks().size());
+        assertEquals(1, tasks.size());
         assertTrue(response.contains("[T][ ] buy milk"));
         assertTrue(Files.readString(filePath).contains("T | 0 | buy milk"));
+    }
+
+    /**
+     * Verifies that the in-memory task state is restored when saving the command fails.
+     */
+    @Test
+    void parse_saveFailure_taskRestoredFromInMemorySnapshot() throws IOException {
+        Path directoryInsteadOfFile = tempDir.resolve("tasks");
+        Files.createDirectory(directoryInsteadOfFile);
+        parser = new Parser(new Storage(directoryInsteadOfFile), tasks);
+
+        String response = parser.parse("todo buy milk");
+
+        assertEquals("Could not save tasks. Please check that the task file is writable.", response);
+        assertEquals("There are no tasks in your list", parser.parse("list"));
     }
 
     /**
@@ -67,9 +82,9 @@ class ParserTest {
         parser.parse("deadline submit report /by 30082026 1800");
         parser.parse("event team meeting /from 31082026 1000 /to 31082026 1130");
 
-        assertEquals(2, Baron.getTasks().size());
-        assertInstanceOf(Deadline.class, Baron.getTasks().getTasks().get(0));
-        assertInstanceOf(Event.class, Baron.getTasks().getTasks().get(1));
+        assertEquals(2, tasks.size());
+        assertInstanceOf(Deadline.class, tasks.getTasks().get(0));
+        assertInstanceOf(Event.class, tasks.getTasks().get(1));
         String contents = Files.readString(filePath);
         assertTrue(contents.contains("D | 0 | submit report |  | 2026-08-30T18:00"));
         assertTrue(contents.contains(
@@ -88,7 +103,7 @@ class ParserTest {
         assertTrue(parser.parse("unmark 1").contains("[T][ ] buy milk"));
         assertTrue(Files.readString(filePath).contains("T | 0 | buy milk"));
         assertTrue(parser.parse("delete 1").contains("Now you have 0 tasks"));
-        assertEquals(0, Baron.getTasks().size());
+        assertEquals(0, tasks.size());
         assertEquals("", Files.readString(filePath));
     }
 
@@ -101,7 +116,7 @@ class ParserTest {
         assertEquals("Missing flag /by", parser.parse("deadline submit report"));
         assertEquals("Task number must be an integer", parser.parse("mark one"));
         assertEquals("Invalid task index", parser.parse("delete 1"));
-        assertEquals(0, Baron.getTasks().size());
+        assertEquals(0, tasks.size());
     }
 
     /**
@@ -131,7 +146,7 @@ class ParserTest {
     void parse_deadlineWithInvalidDate_errorReturnedAndTaskNotAdded() {
         String response = parser.parse("deadline submit report /by tomorrow");
 
-        assertEquals(0, Baron.getTasks().size());
+        assertEquals(0, tasks.size());
         assertEquals("Date/time must be in ddMMyyyy HHmm", response);
     }
 
@@ -142,7 +157,7 @@ class ParserTest {
     void parse_eventWithEqualTimes_errorReturnedAndTaskNotAdded() {
         String response = parser.parse("event meeting /from 31082026 1100 /to 31082026 1100");
 
-        assertEquals(0, Baron.getTasks().size());
+        assertEquals(0, tasks.size());
         assertEquals("/to date must be after /from date", response);
     }
 
@@ -151,8 +166,8 @@ class ParserTest {
      */
     @Test
     void parse_findCommand_matchingTasksListed() {
-        Baron.getTasks().addTask(new Todo("buy milk"));
-        Baron.getTasks().addTask(new Todo("read notes"));
+        tasks.addTask(new Todo("buy milk"));
+        tasks.addTask(new Todo("read notes"));
 
         String response = parser.parse("find buy");
 
@@ -176,12 +191,4 @@ class ParserTest {
         assertEquals("There are no tasks in your list", parser.parse("list"));
     }
 
-    /**
-     * Removes every task from the application's shared task list.
-     */
-    private void clearTasks() {
-        for (Task task : Baron.getTasks().getTasks()) {
-            Baron.getTasks().deleteTask(task);
-        }
-    }
 }

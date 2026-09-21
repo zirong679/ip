@@ -2,14 +2,10 @@ package baron.core;
 
 import java.nio.file.Path;
 
-import baron.core.task.TaskList;
-
 /**
  * Coordinates Baron command processing and persistent task storage.
  */
 public class Baron {
-    /** Shared list containing every task managed by Baron. */
-    private static final TaskList TASKS = new TaskList();
     private final Parser parser;
 
     /**
@@ -19,13 +15,7 @@ public class Baron {
      */
     public Baron(Path path) {
         Storage storage = new Storage(path);
-        storage.readTasks();
-        parser = new Parser(storage);
-    }
-
-    /** Returns the shared list containing every task managed by Baron. */
-    public static TaskList getTasks() {
-        return TASKS;
+        parser = new Parser(storage, storage.readTasks());
     }
 
     /**

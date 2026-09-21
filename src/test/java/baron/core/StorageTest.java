@@ -28,21 +28,22 @@ import baron.core.task.Todo;
 class StorageTest {
     @TempDir
     private Path tempDir;
+    private TaskList tasks;
 
     /**
-     * Clears the shared application task list before every test.
+     * Creates an isolated task list before every test.
      */
     @BeforeEach
     void setUp() {
-        clearTasks();
+        tasks = new TaskList();
+        StorageWarningHandler.getInstance().clearWarnings();
     }
 
     /**
-     * Clears tasks added while running a test.
+     * Keeps test state isolated through the per-test task list.
      */
     @AfterEach
     void tearDown() {
-        clearTasks();
     }
 
     /**
@@ -61,17 +62,17 @@ class StorageTest {
      * Verifies that saving replaces existing file contents with the current task list.
      */
     @Test
-    void writeTasks_tasksPresent_taskListSerializedToFile() throws IOException {
+    void writeTasks_tasksPresent_taskListSerializedToFile() throws IOException, BaronException {
         Path filePath = tempDir.resolve("tasks.txt");
         Storage storage = new Storage(filePath);
-        Baron.getTasks().addTask(new Todo(
+        tasks.addTask(new Todo(
                 UUID.fromString("00000000-0000-0000-0000-000000000001"),
                 "buy milk"));
-        Baron.getTasks().addTask(new Todo(
+        tasks.addTask(new Todo(
                 UUID.fromString("00000000-0000-0000-0000-000000000002"),
                 "read notes"));
 
-        storage.writeTasks();
+        storage.writeTasks(tasks);
 
         assertEquals(
                 """
@@ -89,10 +90,10 @@ class StorageTest {
         Files.writeString(filePath, "00000000-0000-0000-0000-000000000001 | T | 1 | buy milk | ");
         Storage storage = new Storage(filePath);
 
-        storage.readTasks();
+        tasks = storage.readTasks();
 
-        Task restoredTask = Baron.getTasks().getTasks().getFirst();
-        assertEquals(1, Baron.getTasks().size());
+        Task restoredTask = tasks.getTasks().getFirst();
+        assertEquals(1, tasks.size());
         assertTrue(restoredTask.isDone());
         assertEquals("[T][X] buy milk", restoredTask.toString());
     }
@@ -116,30 +117,29 @@ class StorageTest {
                 "meeting",
                 LocalDateTime.of(2026, 8, 31, 10, 0),
                 LocalDateTime.of(2026, 8, 31, 11, 0));
-        deadline.setRequiredTasks(new TaskList(List.of(prerequisite)));
-        Baron.getTasks().addTask(prerequisite);
-        Baron.getTasks().addTask(deadline);
-        Baron.getTasks().addTask(event);
-        storage.writeTasks();
+        tasks.addTask(prerequisite);
+        tasks.addTask(deadline);
+        tasks.addTask(event);
+        deadline.setRequiredTasks(tasks, new TaskList(List.of(prerequisite)));
+        storage.writeTasks(tasks);
 
-        clearTasks();
-        new Storage(filePath).readTasks();
+        tasks = new Storage(filePath).readTasks();
 
-        assertEquals(3, Baron.getTasks().size());
-        assertEquals("[T][ ] prepare", Baron.getTasks().getTasks().get(0).toString());
+        assertEquals(3, tasks.size());
+        assertEquals("[T][ ] prepare", tasks.getTasks().get(0).toString());
         assertEquals(
                 """
                 [D][ ] submit
                 by: 06:00 PM, 30 Aug 2026""",
-                Baron.getTasks().getTasks().get(1).toString());
+                tasks.getTasks().get(1).toString());
         assertEquals(
                 """
                 [E][ ] meeting
                 from: 10:00 AM, 31 Aug 2026
                 to: 11:00 AM, 31 Aug 2026""",
-                Baron.getTasks().getTasks().get(2).toString());
-        assertTrue(Baron.getTasks().getTasks().get(1)
-                .getNumberedTaskWithRelationship(true, false).contains("requires:"));
+                tasks.getTasks().get(2).toString());
+        assertTrue(tasks.getTasks().get(1)
+                .getNumberedTask(tasks, true, false).contains("requires:"));
     }
 
     /**
@@ -153,18 +153,27 @@ class StorageTest {
                 filePath,
                 "\nnot a task\n00000000-0000-0000-0000-000000000001 | T | 0 | valid | \n");
 
-        new Storage(filePath).readTasks();
+        tasks = new Storage(filePath).readTasks();
 
-        assertEquals(1, Baron.getTasks().size());
-        assertTrue(Baron.getTasks().getTasks().getFirst().getNumberedTask().contains("valid"));
+        assertEquals(1, tasks.size());
+        assertTrue(tasks.getTasks().getFirst().getNumberedTask(tasks, false, false).contains("valid"));
     }
 
-    /**
-     * Removes every task from Baron's shared task list.
-     */
-    private void clearTasks() {
-        for (Task task : Baron.getTasks().getTasks()) {
-            Baron.getTasks().deleteTask(task);
-        }
+    /** Verifies that a relationship to a missing task is skipped and reported as a warning. */
+    @Test
+    void readTasks_missingRelationshipTarget_loadsTaskAndReportsWarning() throws IOException {
+        Path filePath = tempDir.resolve("tasks.txt");
+        Files.writeString(
+                filePath,
+                "00000000-0000-0000-0000-000000000001 | T | 0 | valid | "
+                        + "00000000-0000-0000-0000-000000000099");
+
+        Storage storage = new Storage(filePath);
+        tasks = storage.readTasks();
+
+        assertEquals(1, tasks.size());
+        assertEquals(1, StorageWarningHandler.getInstance().getWarnings().size());
+        assertTrue(StorageWarningHandler.getInstance().getWarnings().getFirst().contains("missing task"));
     }
+
 }

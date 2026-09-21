@@ -53,9 +53,11 @@ class TaskTest {
     void markAsDone_incompleteRequiredTask_baronExceptionThrown() throws BaronException {
         Todo requiredTask = todo("00000000-0000-0000-0000-000000000001", "required task");
         Todo unlockedTask = todo("00000000-0000-0000-0000-000000000002", "unlocked task");
-        unlockedTask.setRequiredTasks(new TaskList(List.of(requiredTask)));
+        unlockedTask.setRequiredTasks(
+                new TaskList(List.of(requiredTask, unlockedTask)), new TaskList(List.of(requiredTask)));
 
-        assertThrows(BaronException.class, unlockedTask::markAsDone);
+        TaskList tasks = new TaskList(List.of(requiredTask, unlockedTask));
+        assertThrows(BaronException.class, () -> tasks.markTask(1));
         assertFalse(unlockedTask.isDone());
     }
 

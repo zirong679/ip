@@ -4,7 +4,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import baron.core.Baron;
 import baron.core.exception.BaronException;
 
 /**
@@ -17,8 +16,6 @@ public abstract class Task {
     private boolean isDone;
     private TaskList requiredTasks;
     private TaskList unlockedTasks;
-    private TaskList savedRequiredTasks;
-    private TaskList savedUnlockedTasks;
 
     /**
      * Creates a task with its immutable identity and an empty dependency set.
@@ -67,39 +64,21 @@ public abstract class Task {
     }
 
     /**
-     * Marks this task as completed if all prerequisite tasks are complete.
+     * Marks this task as completed.
      *
-     * @return This completed task.
-     * @throws BaronException If a prerequisite task is incomplete.
+     * @return This task after updating its completion status.
      */
-    public Task markAsDone() throws BaronException {
-        TaskList allRequiredIncompleteTasks = getAllRequiredTasks().getIncompleteTasks();
-        assert (allRequiredIncompleteTasks != null);
-        if (allRequiredIncompleteTasks.size() > 0) {
-            throw new BaronException(String.format(
-                    "Cannot mark task %s as done because the following tasks are not done:\n%s",
-                    getNumberedTask(),
-                    allRequiredIncompleteTasks.getNumberedTasksWithRelationship(false, false)));
-        }
+    public Task markAsDone() {
         isDone = true;
         return this;
     }
 
     /**
-     * Marks this task as incomplete if no completed task depends on it.
+     * Marks this task as incomplete.
      *
-     * @return This incomplete task.
-     * @throws BaronException If a dependent task is complete.
+     * @return This task after updating its completion status.
      */
-    public Task markAsNotDone() throws BaronException {
-        TaskList allUnlockedCompletedTasks = getAllUnlockedTasks().getCompletedTasks();
-        assert (allUnlockedCompletedTasks != null);
-        if (allUnlockedCompletedTasks.size() > 0) {
-            throw new BaronException(String.format(
-                    "Cannot mark task %s as not done because the following tasks are done:\n%s",
-                    getNumberedTask(),
-                    allUnlockedCompletedTasks.getNumberedTasksWithRelationship(false, false)));
-        }
+    public Task markAsNotDone() {
         isDone = false;
         return this;
     }
@@ -115,78 +94,19 @@ public abstract class Task {
     }
 
     /**
-     * Sets the tasks that must be completed before this task.
-     *
-     * @param requiredTasks The prerequisite tasks.
-     * @throws BaronException If the dependencies create a cycle.
+     * Removes this task's current relationship with required tasks.
      */
-    public void setRequiredTasks(TaskList requiredTasks) throws BaronException {
-        assert requiredTasks != null : "Tasks required must not be null";
-        for (Task requiredTask : requiredTasks.getTasks()) {
-            if (isDone && !requiredTask.isDone) {
-                clearRelationships();
-                throw new BaronException(String.format(
-                        "%1$s requires %2$s, but %1$s is done and %2$s is not done",
-                        getTaskNumber(),
-                        requiredTask.getTaskNumber()));
-            }
-            if (willUnlock(requiredTask)) {
-                clearRelationships();
-                throw new BaronException(String.format(
-                        "%1$s cannot require %2$s because %1$s unlocks %2$s",
-                        getTaskNumber(),
-                        requiredTask.getTaskNumber()));
-            }
-            requiredTask.unlockedTasks.addTask(this);
-        }
-        this.requiredTasks = requiredTasks;
-    }
-
-    /**
-     * Sets the tasks that this task unlocks upon completion.
-     *
-     * @param unlockedTasks The dependent tasks.
-     * @throws BaronException If the dependencies create a cycle.
-     */
-    public void setUnlockedTasks(TaskList unlockedTasks) throws BaronException {
-        assert unlockedTasks != null : "Tasks unlocked must not be null";
-        for (Task unlockedTask : unlockedTasks.getTasks()) {
-            if (!isDone && unlockedTask.isDone) {
-                clearRelationships();
-                throw new BaronException(String.format(
-                        "%1$s unlocks %2$s, but %1$s is not done and %2$s is done",
-                        getTaskNumber(),
-                        unlockedTask.getTaskNumber()));
-            }
-            if (willRequire(unlockedTask)) {
-                clearRelationships();
-                throw new BaronException(String.format(
-                        "%1$s cannot unlock %2$s because %1$s requires %2$s",
-                        getTaskNumber(),
-                        unlockedTask.getTaskNumber()));
-            }
-            unlockedTask.requiredTasks.addTask(this);
-        }
-        this.unlockedTasks = unlockedTasks;
-    }
-
-    /**
-     * Saves this task's current prerequisite and dependent-task relationships.
-     */
-    public void saveRelationships() {
-        savedRequiredTasks = requiredTasks;
-        savedUnlockedTasks = unlockedTasks;
-    }
-
-    /**
-     * Removes this task's current prerequisite and dependent-task relationships.
-     */
-    public void clearRelationships() {
+    public void clearRequiredTasks() {
         for (Task requiredTask : requiredTasks.getTasks()) {
             requiredTask.unlockedTasks.deleteTask(this);
         }
         requiredTasks = new TaskList();
+    }
 
+    /**
+     * Removes this task's current relationships with unlocked tasks.
+     */
+    public void clearUnlockedTasks() {
         for (Task unlockedTask : unlockedTasks.getTasks()) {
             unlockedTask.requiredTasks.deleteTask(this);
         }
@@ -194,43 +114,63 @@ public abstract class Task {
     }
 
     /**
-     * Restores the prerequisite and dependent-task relationships saved most recently.
+     * Sets the tasks that must be completed before this task.
      *
-     * @throws BaronException If the restored relationships form a cycle.
+     * @param allTasks All tasks, used to format validation errors.
+     * @param requiredTasks The prerequisite tasks.
+     * @throws BaronException If the dependencies create a cycle.
      */
-    public void recoverRelationships() throws BaronException {
-        setRequiredTasks(savedRequiredTasks);
-        setUnlockedTasks(savedUnlockedTasks);
+    public void setRequiredTasks(TaskList allTasks, TaskList requiredTasks) throws BaronException {
+        assert requiredTasks != null : "Tasks required must not be null";
+        clearRequiredTasks();
+        for (Task requiredTask : requiredTasks.getTasks()) {
+            if (isDone && !requiredTask.isDone) {
+                clearRequiredTasks();
+                throw new BaronException(String.format(
+                        "%1$s requires %2$s, but %1$s is done and %2$s is not done",
+                        allTasks.getTaskNumber(this),
+                        allTasks.getTaskNumber(requiredTask)));
+            }
+            if (willUnlock(requiredTask)) {
+                clearRequiredTasks();
+                throw new BaronException(String.format(
+                        "%1$s cannot require %2$s because %1$s unlocks %2$s",
+                        allTasks.getTaskNumber(this),
+                        allTasks.getTaskNumber(requiredTask)));
+            }
+            requiredTask.unlockedTasks.addTask(this);
+            this.requiredTasks.addTask(requiredTask);
+        }
     }
 
     /**
-     * Returns whether completing this task requires the specified task, directly or indirectly.
+     * Sets the tasks that this task unlocks upon completion.
      *
-     * @param task The task to look for.
-     * @return Whether this task requires the specified task.
+     * @param allTasks All tasks, used to format validation errors.
+     * @param unlockedTasks The dependent tasks.
+     * @throws BaronException If the dependencies create a cycle.
      */
-    private boolean willRequire(Task task) {
-        if (equals(task)) {
-            return true;
+    public void setUnlockedTasks(TaskList allTasks, TaskList unlockedTasks) throws BaronException {
+        assert unlockedTasks != null : "Tasks unlocked must not be null";
+        clearUnlockedTasks();
+        for (Task unlockedTask : unlockedTasks.getTasks()) {
+            if (!isDone && unlockedTask.isDone) {
+                clearUnlockedTasks();
+                throw new BaronException(String.format(
+                        "%1$s unlocks %2$s, but %1$s is not done and %2$s is done",
+                        allTasks.getTaskNumber(this),
+                        allTasks.getTaskNumber(unlockedTask)));
+            }
+            if (willRequire(unlockedTask)) {
+                clearUnlockedTasks();
+                throw new BaronException(String.format(
+                        "%1$s cannot unlock %2$s because %1$s requires %2$s",
+                        allTasks.getTaskNumber(this),
+                        allTasks.getTaskNumber(unlockedTask)));
+            }
+            unlockedTask.requiredTasks.addTask(this);
+            this.unlockedTasks.addTask(unlockedTask);
         }
-        return requiredTasks.getTasks().stream()
-                .map(requiredTask -> requiredTask.willRequire(task))
-                .reduce(false, (result, bool) -> result || bool);
-    }
-
-    /**
-     * Returns whether completing this task unlocks the specified task, directly or indirectly.
-     *
-     * @param task The task to look for.
-     * @return Whether this task unlocks the specified task.
-     */
-    private boolean willUnlock(Task task) {
-        if (equals(task)) {
-            return true;
-        }
-        return unlockedTasks.getTasks().stream()
-                .map(unlockedTask -> unlockedTask.willUnlock(task))
-                .reduce(false, (result, bool) -> result || bool);
     }
 
     /**
@@ -238,7 +178,7 @@ public abstract class Task {
      *
      * @return The direct and indirect prerequisite tasks.
      */
-    private TaskList getAllRequiredTasks() {
+    protected TaskList getAllRequiredTasks() {
         if (requiredTasks.size() == 0) {
             return new TaskList();
         }
@@ -254,7 +194,7 @@ public abstract class Task {
      *
      * @return The direct and indirect dependent tasks.
      */
-    private TaskList getAllUnlockedTasks() {
+    protected TaskList getAllUnlockedTasks() {
         if (unlockedTasks.size() == 0) {
             return new TaskList();
         }
@@ -263,6 +203,41 @@ public abstract class Task {
                 .collect(Collectors.toSet());
         allUnlockedTasks.addAll(unlockedTasks.getTasks());
         return new TaskList(allUnlockedTasks);
+    }
+
+    /**
+     * Returns whether completing this task requires the specified task, directly or indirectly.
+     *
+     * @param task The task to look for.
+     * @return Whether this task requires the specified task.
+     */
+    private boolean willRequire(Task task) {
+        if (equals(task)) {
+            return true;
+        }
+        return requiredTasks.getTasks().stream().anyMatch(requiredTask -> requiredTask.willRequire(task));
+    }
+
+    /**
+     * Returns whether completing this task unlocks the specified task, directly or indirectly.
+     *
+     * @param task The task to look for.
+     * @return Whether this task unlocks the specified task.
+     */
+    private boolean willUnlock(Task task) {
+        if (equals(task)) {
+            return true;
+        }
+        return unlockedTasks.getTasks().stream().anyMatch(unlockedTask -> unlockedTask.willUnlock(task));
+    }
+
+    /**
+     * Returns this task's completion status and description.
+     *
+     * @return The formatted task details.
+     */
+    private String getTaskString() {
+        return String.format("[%s][%s] %s", taskType.getFileCode(), getStatusIcon(), description);
     }
 
     /**
@@ -292,56 +267,29 @@ public abstract class Task {
     }
 
     /**
-     * Returns this task's current one-based number in Baron's task list.
+     * Returns this task with its list number and optionally its relationships.
      *
-     * @return The task number, or {@code #?} if this task is not in the list.
-     */
-    protected String getTaskNumber() {
-        int taskIndex = Baron.getTasks().indexOf(this);
-        return "#" + (taskIndex == -1 ? "?" : taskIndex + 1);
-    }
-
-    /**
-     * Returns this task's completion status and description.
-     *
-     * @return The formatted task details.
-     */
-    protected String getTaskString() {
-        return String.format("[%s][%s] %s", taskType.getFileCode(), getStatusIcon(), description);
-    }
-
-    /**
-     * Returns this task with its current task number.
-     *
-     * @return The numbered task.
-     */
-    public String getNumberedTask() {
-        return getTaskNumber() + " " + getTaskString();
-    }
-
-    /**
-     * Returns the requested prerequisite and dependent-task details for this task.
-     *
+     * @param allTasks All tasks, used to determine this task's number.
      * @param showRequiredTasks Whether to include prerequisite tasks.
      * @param showUnlockedTasks Whether to include dependent tasks.
-     * @return The formatted relationship details.
+     * @return The numbered task and requested relationships.
      */
-    protected String getRelationship(boolean showRequiredTasks, boolean showUnlockedTasks) {
-        String requiredTaskString = showRequiredTasks && requiredTasks.size() > 0
-                ? "\nrequires:\n" + requiredTasks.getNumberedTasks() : "";
-        String unlockedTaskString = showUnlockedTasks && unlockedTasks.size() > 0
-                ? "\nunlocks:\n" + unlockedTasks.getNumberedTasks() : "";
-        return requiredTaskString + unlockedTaskString;
+    public String getNumberedTask(TaskList allTasks, boolean showRequiredTasks, boolean showUnlockedTasks) {
+        String numberedTask = "task " + allTasks.getTaskNumber(this) + " " + this;
+        numberedTask += showRequiredTasks ? getRequiredTasks(allTasks) : "";
+        numberedTask += showUnlockedTasks ? getUnlockedTasks(allTasks) : "";
+        return numberedTask;
     }
 
-    /**
-     * Returns this task with its number and, optionally, its prerequisite and dependent tasks.
-     *
-     * @param showRequiredTasks Whether to include prerequisite tasks.
-     * @param showUnlockedTasks Whether to include dependent tasks.
-     * @return The numbered task and requested relationship details.
-     */
-    public String getNumberedTaskWithRelationship(boolean showRequiredTasks, boolean showUnlockedTasks) {
-        return "task " + getTaskNumber() + " " + this + getRelationship(showRequiredTasks, showUnlockedTasks);
+    private String getRequiredTasks(TaskList allTasks) {
+        return requiredTasks.size() == 0 ? "" : requiredTasks.getTasks().stream()
+                .map(requiredTask -> allTasks.getTaskNumber(requiredTask) + " " + requiredTask.getTaskString())
+                .collect(Collectors.joining("\n", "\nrequires:\n", ""));
+    }
+
+    private String getUnlockedTasks(TaskList allTasks) {
+        return unlockedTasks.size() == 0 ? "" : unlockedTasks.getTasks().stream()
+                .map(unlockedTask -> allTasks.getTaskNumber(unlockedTask) + " " + unlockedTask.getTaskString())
+                .collect(Collectors.joining("\n", "\nunlocks:\n", ""));
     }
 }
