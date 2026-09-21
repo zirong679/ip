@@ -28,3 +28,13 @@ Prerequisites: JDK 25, update Intellij to the most recent version.
    ```
 
 **Warning:** Keep the `src\main\java` folder as the root folder for Java files (i.e., don't rename those folders or move Java files to another folder outside of this folder path), as this is the default location some tools (e.g., Gradle) expect to find Java files.
+
+## Acknowledgements
+
+The project author used OpenAI Codex as an AI-assisted development tool. Its
+use was widespread across the project: it assisted with generating JavaDocs,
+improving code quality, generating and extending unit tests, diagnosing and
+fixing bugs, reviewing the user experience, and drafting and refining the user
+guide. The project author remained responsible for the design, implementation,
+verification, and final decisions, and reviewed the generated suggestions
+against the source code and course requirements.
