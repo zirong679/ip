@@ -171,8 +171,21 @@ class ParserTest {
 
         String response = parser.parse("find buy");
 
+        assertTrue(response.contains("task #1 [T][ ] buy milk"));
         assertTrue(response.contains("buy milk"));
         assertFalse(response.contains("read notes"));
+    }
+
+    /** Verifies that find results preserve task numbers from the full task list. */
+    @Test
+    void parse_findCommand_showsOriginalTaskNumber() {
+        tasks.addTask(new Todo("buy milk"));
+        tasks.addTask(new Todo("read notes"));
+
+        String response = parser.parse("find notes");
+
+        assertTrue(response.contains("task #2 [T][ ] read notes"));
+        assertFalse(response.contains("task #?"));
     }
 
     /**

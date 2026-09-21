@@ -194,7 +194,7 @@ class Parser {
         if (matchingTasks.size() == 0) {
             throw new BaronException("None of your tasks match '" + keyword + "'");
         }
-        return Response.respondWithMatchingTasks(matchingTasks);
+        return Response.respondWithMatchingTasks(matchingTasks, allTasks);
     }
 
     /** Processes a specify command. */
