@@ -42,7 +42,7 @@ class Parser {
             return "Please enter a command";
         }
         try {
-            return routeCommand(command);
+            return routeCommand(command.trim().replaceAll("\\s+", " "));
         } catch (BaronException e) {
             return Response.respondWithBaronException(e);
         }
@@ -50,13 +50,16 @@ class Parser {
 
     /** Routes the specified command to the handler responsible for it. */
     private String routeCommand(String command) throws BaronException {
-        snapshot = allTasks.toFileString();
         if (command.equals("bye")) {
             return Response.respondWithOutro();
         } else if (!storage.isAvailable()) {
             throw new BaronException(
                     "Could not access the task file. Task commands are disabled until storage is available.");
-        } else if (command.matches("^list(\\s+.*)?$")) {
+        } else {
+            validateCommandFormat(command);
+        }
+        snapshot = allTasks.toFileString();
+        if (command.matches("^list(\\s+.*)?$")) {
             return handleList(command);
         } else if (command.matches("^mark(\\s+.*)?$")) {
             return handleMark(command);
@@ -76,6 +79,45 @@ class Parser {
             return handleSpecify(command);
         }
         throw new BaronException("Unknown command");
+    }
+
+    private void validateCommandFormat(String command) throws BaronException {
+        String commandName = command.split(" ", 2)[0];
+        Set<String> allowedFlags = switch (commandName) {
+            case "list", "specify" -> Set.of("/requires", "/unlocks");
+            case "deadline" -> Set.of("/by");
+            case "event" -> Set.of("/from", "/to");
+            default -> Set.of();
+        };
+        String[] tokens = command.split(" ");
+        Set<String> seenFlags = new HashSet<>();
+        for (String token : tokens) {
+            if (!token.startsWith("/")) {
+                continue;
+            }
+            String flag = token.split(" ", 2)[0];
+            if (!allowedFlags.contains(flag)) {
+                throw new BaronException("Unknown or misplaced flag " + flag);
+            }
+            if (!seenFlags.add(flag)) {
+                throw new BaronException("Flag " + flag + " must not be specified more than once");
+            }
+        }
+        validateDescription(commandName, command);
+    }
+
+    private void validateDescription(String commandName, String command) throws BaronException {
+        if (!Set.of("todo", "deadline", "event", "find").contains(commandName)) {
+            return;
+        }
+        String description = command.substring(commandName.length()).trim();
+        int firstFlag = description.indexOf(" /");
+        if (firstFlag >= 0) {
+            description = description.substring(0, firstFlag).trim();
+        }
+        if (description.contains("|") || description.contains("\n") || description.contains("\r")) {
+            throw new BaronException("Descriptions must not contain '|', newlines, or carriage returns");
+        }
     }
 
     /** Returns the response for a list command. */
